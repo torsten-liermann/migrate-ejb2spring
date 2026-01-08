@@ -1,0 +1,52 @@
+== Schnellreferenz
+
+Dieses Kapitel fasst häufige Migrationen als kurze Orientierung zusammen. Die Detailerläuterungen stehen in den thematischen Kapiteln.
+
+[cols="2,2,3"]
+|===
+| Jakarta EE | Spring Boot | Hinweis
+
+| `@Stateless`
+| `@Service`
+| Semantik zu Lebenszyklus und Thread-Sicherheit prüfen
+
+| `@Singleton`
+| `@Service`
+| EJB-Locks entfallen, Synchronisation explizit definieren
+
+| `@Stateful`
+| Session-/Request-gebundene State-Modelle
+| Kein direkter Ersatz, fachlich neu modellieren
+
+| `@TransactionAttribute`
+| `@Transactional`
+| Propagation und Rollback-Regeln prüfen
+
+| `@MessageDriven`
+| `@JmsListener`
+| Listener-Container, Acknowledge-Modus, Concurrency prüfen
+
+| `@Schedule`
+| `@Scheduled`
+| Cron-Syntax und Zeitverhalten prüfen
+
+| `@Asynchronous`
+| `@Async`
+| Proxy-Modelle und Kontextweitergabe prüfen
+
+| `@RolesAllowed`
+| `@PreAuthorize`
+| Rollenpräfixe und SecurityContext prüfen
+
+| JAX-RS Ressourcen
+| Spring MVC Controller
+| Pfad- und Exception-Mapping prüfen
+
+| JSON-B
+| Jackson
+| Annotationen und Serialisierung prüfen
+
+| JNDI Lookup
+| `@ConfigurationProperties`
+| Werte in `application.properties` überführen
+|===

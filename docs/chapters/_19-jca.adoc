@@ -1,0 +1,67 @@
+== JCA (Java Connector Architecture)
+
+JCA-Connectoren sind ein Container-Feature, das Ressourcenadapter, Connection-Management und transaktionale Integration standardisiert. Die Migration umfasst die Bewertung vorhandener Connectoren, ihrer JNDI-Bindungen und der Integrationswege im Zielsystem.
+
+.Spezifikationsreferenzen
+****
+* https://jakarta.ee/specifications/connectors/2.1/jakarta-connectors-spec-2.1.html[Jakarta Connectors 2.1 Spec]
+* https://jakarta.ee/specifications/connectors/2.1/jakarta-connectors-spec-2.1.html#a512[Jakarta Connectors 2.1 - §5 Contracts]
+* https://jakarta.ee/specifications/connectors/2.1/jakarta-connectors-spec-2.1.html#a1027[Jakarta Connectors 2.1 - §7 Transaction Management]
+* https://docs.spring.io/spring-framework/reference/integration/jca.html[Spring Framework - JCA CCI Support]
+****
+
+=== Typische Einsatzfälle
+
+Falls JCA im System verwendet wird, sind die zugehörigen JNDI-Namen, Adapter-Konfigurationen und Transaktionsanforderungen zu erfassen, bevor eine Zieltechnologie festgelegt wird.
+
+=== Migration in Spring
+
+In Spring Boot wird die Integration über spezifische Starter, Adapterbibliotheken oder explizite Client-Konfigurationen umgesetzt. Wo möglich sollten transaktionale Grenzen durch das Zielsystem unterstützt werden. Falls keine transaktionale Integration verfügbar ist, muss die Fachlogik mit Kompensationsschritten oder Idempotenz-Strategien abgesichert werden.
+
+=== Prüfpunkte für das Projekt
+
+Vor der Migration müssen die vorhandenen JCA-Ressourcen erfasst werden:
+
+[cols="1,3"]
+|===
+| Aspekt | Prüfung
+
+| Adapter-Konfiguration
+| Welche Resource Adapter sind in `standalone.xml` / `domain.xml` definiert?
+
+| JNDI-Bindungen
+| Welche `java:/` oder `java:jboss/` Bindungen werden für Adapter verwendet?
+
+| Connection Factories
+| Welche `ConnectionFactory`-Typen werden injiziert (`@Resource`)?
+
+| Transaktionsintegration
+| Nutzen Adapter XA-Transaktionen oder Local Transactions?
+
+| Adapter-Typ
+| Outbound (Client zu EIS) oder Inbound (Message-Driven)?
+|===
+
+=== Typische Migrationspfade
+
+[cols="1,2,2"]
+|===
+| JCA-Adapter | Spring-Alternative | Hinweis
+
+| JMS-Adapter
+| Spring JMS mit `JmsTemplate` / `@JmsListener`
+| Bevorzugte Migration für Messaging
+
+| JDBC-Adapter
+| Spring `DataSource` mit Connection Pool
+| Standard für Datenbankzugriff
+
+| Mail-Adapter
+| Spring `JavaMailSender`
+| Siehe Mail-Kapitel
+
+| Proprietäre EIS-Adapter
+| Spring Integration oder direkte Client-Bibliothek
+| Projektspezifische Analyse erforderlich
+|===
+

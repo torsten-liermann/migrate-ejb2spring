@@ -1,0 +1,14 @@
+== Edge Cases
+
+Die Rezepte markieren Stellen, an denen zusätzliche fachliche Entscheidungen erforderlich sind. Diese Bereiche werden im Migrationsreport gesammelt und im Review konkretisiert.
+
+Typische Edge Cases sind:
+
+* `@RunAs` und andere Security-Wechsel
+* EJB Timer mit persistenter Semantik oder Kalenderausnahmen
+* CDI-Qualifier mit Attributen oder komplexen Typauflösungen
+* JCA-Connectoren und proprietäre Resource-Adapter
+* JNDI-Lookups auf nicht standardisierte Ressourcen
+* Remote Interfaces mit proprietären Protokollen
+
+Die Entscheidung zu Alternativen wird auf Ebene der Architektur getroffen und im Projekt dokumentiert.

@@ -1,0 +1,16 @@
+== Entity Beans (EJB 2.x)
+
+Entity Beans sind ein veraltetes EJB-Modell und wurden durch JPA ersetzt. Eine Migration nach Spring Boot führt immer über eine Re-Implementierung als JPA-Entities und Repositorys. Automatisierte Migrationen sind für Entity Beans nicht sinnvoll.
+
+=== Unterschiede im Modell
+
+Entity Beans besitzen containerverwalteten Persistenzzustand, Home-Interfaces und Lebenszyklusmethoden wie `ejbLoad` und `ejbStore`. JPA-Entities sind dagegen einfache POJOs mit Annotationsmapping und werden über `EntityManager` oder Spring Data verwaltet.
+
+=== Migrationsstrategie
+
+* Entity Bean und zugehörige Home-/Remote-Interfaces analysieren
+* JPA-Entity mit `@Entity` und passenden Relationen definieren
+* Repositorys oder DAO-Klassen erstellen
+* Geschäftslogik aus Bean-Klassen in Services überführen
+
+Für Projekte mit EJB 2.x ist eine gezielte Neuimplementierung erforderlich. Die Rezepte können dabei höchstens bei der Umstellung von Paketnamen oder Imports unterstützen.

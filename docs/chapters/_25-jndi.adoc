@@ -1,0 +1,56 @@
+== JNDI
+
+EJB-Anwendungen binden Ressourcen häufig über JNDI-Namen ein, etwa DataSources, JMS-Destinations oder Konfigurationswerte. In Spring Boot werden diese Werte in `application.properties` oder `application.yml` erfasst und über Property-Binding injiziert. Die Migration ist daher immer auch eine Konfigurationsmigration.
+
+=== JNDI-gebundene Ressourcen
+
+JNDI-Namen spiegeln die Container-Konfiguration wider. Sie müssen in Spring Boot in konkrete Property-Namen übersetzt werden. Für DataSources ist das meist `spring.datasource.*`, für JMS-Destinations häufig eine eigene `@ConfigurationProperties`-Klasse.
+
+Im Projekt werden JNDI‑Lookups durch die Rezepte erkannt und mit `@NeedsReview` markiert. Die konkrete Zuordnung zu Properties hängt von der bestehenden Server‑Konfiguration ab und ist projektbezogen zu validieren.
+
+.Beispiel: VORHER (EJB)
+[source,java]
+----
+import javax.annotation.Resource;
+import javax.sql.DataSource;
+
+public class BillingRepository {
+
+    @Resource(lookup = "java:app/jdbc/BillingDataSource")
+    private DataSource dataSource;
+}
+----
+
+.Beispiel: NACHHER (Spring Boot)
+[source,java]
+----
+import org.springframework.stereotype.Repository;
+
+@Repository
+public class BillingRepository {
+
+    private final DataSource dataSource;
+
+    public BillingRepository(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+}
+----
+
+Die eigentliche Verknüpfung erfolgt über Konfiguration:
+
+.Beispiel: application.properties
+[source,properties]
+----
+spring.datasource.url=jdbc:postgresql://localhost:5432/billing
+spring.datasource.username=billing
+spring.datasource.password=secret
+----
+
+=== Konfigurationswerte
+
+JNDI kann in EJB auch für einfache Strings oder Flags verwendet werden. In Spring sollte dies durch `@ConfigurationProperties` ersetzt werden, um eine klare, typisierte Konfiguration zu erhalten.
+
+=== JMS‑Ressourcen
+
+JMS‑ConnectionFactory und Destinations werden in EJB häufig über JNDI gebunden. In Spring Boot werden ConnectionFactories in der Regel über Starter‑Konfiguration erstellt und über Properties gesteuert. Destinations werden typischerweise als String‑Namen in `@JmsListener` genutzt und müssen mit den Messaging‑Konfigurationen abgeglichen werden. Die Migration erfordert eine konsistente Abbildung von JNDI‑Namen auf Properties und Listener‑Konfigurationen.

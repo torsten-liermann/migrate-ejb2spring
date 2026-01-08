@@ -1,0 +1,92 @@
+EJB to Spring Migration Recipes
+Copyright 2026 Torsten Liermann
+
+This product includes software developed by Torsten Liermann.
+
+=============================================================================
+
+This product includes code derived from the Spring Boot Migrator project
+(https://github.com/spring-projects-experimental/spring-boot-migrator),
+which is licensed under the Apache License, Version 2.0.
+
+   Copyright 2021 - 2023 the original author or authors.
+
+Upstream reference: Based on patterns from Spring Boot Migrator recipes.
+Note: Spring Boot Migrator source files do not have stable commit references
+as the project was archived; code was adapted for EJB-to-Spring migration.
+
+MODIFIED FILES (with "Modifications Copyright 2026 Torsten Liermann" header):
+
+Main sources (ejb-to-spring-recipes/src/main/java/com/github/rewrite/ejb/):
+- AddJakartaInjectDependency.java
+- AddJsfExceptionHandler.java
+- ClassifyRemainingEjbUsage.java
+- ConditionalRemoveEjbApiDependency.java
+- ConfigureJsfSession.java
+- GenerateCxfJaxwsConfig.java
+- GenerateJaxRsServerConfig.java
+- MigrateArquillianToSpringBootTest.java
+- MigrateCdiQualifierToSpringQualifier.java
+- MigrateJsfContextParams.java
+- MigrateManagedBeanToNamed.java
+- MigrateNamedToComponent.java
+- MigrateTransactionalTimerCreation.java
+- MoveJsfResourcesToMetaInf.java
+- RewriteJsfResourceReferences.java
+- ValidateFacesConfigVersion.java
+
+Test sources (ejb-to-spring-recipes/src/test/java/com/github/rewrite/ejb/):
+- AddJakartaInjectDependencyTest.java
+- AddJoinFacesDependenciesTest.java
+- AddJsfExceptionHandlerTest.java
+- ConditionalRemoveEjbApiDependencyTest.java
+- ConfigureJsfSessionTest.java
+- GenerateCxfJaxwsConfigTest.java
+- GenerateJaxRsServerConfigTest.java
+- MigrateArquillianToSpringBootTestTest.java
+- MigrateJsfContextParamsTest.java
+- MigrateManagedBeanToNamedTest.java
+- MigrateNamedToComponentTest.java
+- MigrateTransactionalTimerCreationTest.java
+- MoveJsfResourcesToMetaInfTest.java
+- RewriteJsfResourceReferencesTest.java
+- TimerApiGuaranteeTest.java
+- ValidateFacesConfigVersionTest.java
+
+DIRECT COPIES (with original SBM header, minimal or no changes):
+
+Main sources:
+- CleanupJsfWebXml.java
+
+Test sources:
+- CleanupJsfWebXmlTest.java
+
+Config sources (ejb-to-spring-recipes/src/*/java/com/github/rewrite/ejb/config/):
+- ClusterMode.java
+- ConfigurationException.java
+- ProjectConfigurationClusterTest.java
+- ProjectConfigurationInheritanceTest.java
+
+=============================================================================
+
+This product uses OpenRewrite (https://github.com/openrewrite/rewrite),
+which is licensed under the Apache License, Version 2.0.
+
+=============================================================================
+
+Third-Party Dependencies (compile/runtime scope):
+
+- OpenRewrite Core & Modules (Apache 2.0)
+  https://github.com/openrewrite/rewrite
+
+- SnakeYAML (Apache 2.0)
+  https://bitbucket.org/snakeyaml/snakeyaml
+
+- Spring Framework (Apache 2.0)
+  https://spring.io/projects/spring-framework
+
+- Project Lombok (MIT)
+  https://projectlombok.org/
+
+For a complete list of dependencies and their licenses, run:
+  mvn dependency:tree

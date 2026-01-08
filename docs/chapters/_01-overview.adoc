@@ -1,0 +1,9 @@
+== Überblick der Migration
+
+Die Migration von EJB/Jakarta EE nach Spring Boot ist keine reine Annotation-Übung. Viele Konzepte lassen sich technisch abbilden, die Semantik unterscheidet sich jedoch an zentralen Stellen: Lebenszyklus, Transaktionen, Remoting, Sicherheitskontext und asynchrone Verarbeitung folgen unterschiedlichen Regeln. Die Rezepte transformieren eindeutig abbildbare Konstrukte und erzeugen Review‑Markierungen für Stellen mit zusätzlichem Entscheidungsbedarf.
+
+Auf dieser Grundlage lassen sich die Migrationsthemen in direkte Abbildungen und review‑pflichtige Abbildungen strukturieren. Direkte Abbildungen betreffen z. B. `@Stateless` zu `@Service`, `@TransactionAttribute` zu `@Transactional` oder JSON‑B zu Jackson‑Annotationen. Review‑Pflicht entsteht dort, wo zusätzliche Konfiguration oder Architekturentscheidungen erforderlich sind, etwa bei `@MessageDriven`, `@Schedule`, `@Asynchronous`, Sicherheitsannotationen, CDI‑Producern oder JNDI‑Lookups.
+
+Die Rezepte folgen einer einfachen Maxime: nur das transformieren, was eindeutig ist, und alle impliziten Annahmen sichtbar machen. Daher entstehen Review‑Einträge an Stellen, an denen zusätzliche Architekturentscheidungen erforderlich sind, etwa bei `@Startup`, `@Lock`, `@RunAs`, CDI‑Qualifiern oder JCA‑Connectoren. Das reduziert das Risiko stiller Funktionsänderungen und bündelt offene Punkte im Migrationsreport.
+
+Die nachfolgenden Kapitel erklären jedes Thema fachlich und technisch: was das EJB-Konstrukt bedeutet, wie es in Spring abgebildet werden kann, welche Abweichungen relevant sind und welche Alternativen je nach Anwendungskontext sinnvoll sind.

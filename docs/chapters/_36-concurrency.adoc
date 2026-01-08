@@ -1,0 +1,47 @@
+== Jakarta Concurrency Utilities
+
+Jakarta Concurrency bietet Container-verwaltete Executor-Services (`ManagedExecutorService`, `ManagedScheduledExecutorService`). Diese Services stellen Kontextweitergabe und Lifecycle-Management sicher. In Spring Boot existiert kein identisches Modell; stattdessen werden `TaskExecutor`, `TaskScheduler` oder eigene Executor-Beans verwendet.
+
+=== ManagedExecutorService
+
+.Beispiel: VORHER (Jakarta Concurrency)
+[source,java]
+----
+import javax.annotation.Resource;
+import javax.enterprise.concurrent.ManagedExecutorService;
+
+public class DocumentPipeline {
+
+    @Resource
+    private ManagedExecutorService executor;
+
+    public void process(Document doc) {
+        executor.submit(() -> handle(doc));
+    }
+}
+----
+
+.Beispiel: NACHHER (Spring Boot)
+[source,java]
+----
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.stereotype.Component;
+
+@Component
+public class DocumentPipeline {
+
+    private final TaskExecutor taskExecutor;
+
+    public DocumentPipeline(TaskExecutor taskExecutor) {
+        this.taskExecutor = taskExecutor;
+    }
+
+    public void process(Document doc) {
+        taskExecutor.execute(() -> handle(doc));
+    }
+}
+----
+
+In Spring müssen Thread-Pools explizit konfiguriert werden. Kontextweitergabe (Security, MDC, Transaktionen) muss je nach Anforderung zusätzlich implementiert werden.
+
+Die Jakarta‑Concurrency‑Spezifikation beschreibt, dass Managed‑Executors Container‑Kontexte wie JNDI‑Naming, Classloader und Security‑Informationen propagieren. Wird außerhalb dieser Managed‑Executors gearbeitet, gehen diese Kontexte verloren. Bei der Migration ist daher zu prüfen, welche Kontexte im EJB‑Betrieb implizit vorhanden waren und ob sie in Spring explizit übertragen werden müssen.

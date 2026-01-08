@@ -1,0 +1,169 @@
+== JAX-WS
+
+JAX-WS basiert auf SOAP und WSDL und ist in EJB-Anwendungen häufig eng mit dem Application Server verbunden. In Spring Boot gibt es keine integrierte JAX-WS-Implementierung; häufig wird Apache CXF oder Spring Web Services verwendet. Die Migration sollte den Service-Contract als Ausgangspunkt nehmen und die technische Implementierung neu aufsetzen.
+
+Im WildFly-Quickstart sind JAX-WS Beispiele enthalten (z. B. `jaxws-ejb`, `jaxws-retail`, `helloworld-ws`). Diese Projekte dienen als Referenzfälle für Provider-Erhalt und die Bewertung der Spring-Integration.
+
+=== Service-Implementierung
+
+EJB markiert SOAP-Services mit `@WebService` und bindet sie an den Container. In Spring Boot wird derselbe Contract typischerweise über CXF oder über Spring-WS mit einer expliziten Konfiguration veröffentlicht.
+
+=== Migrationsaspekte
+
+Die WSDL bildet den verbindlichen Vertrag und muss im Rahmen der Migration versioniert und geprüft werden. SOAP-Endpoints werden in Spring typischerweise über CXF oder Spring-WS implementiert. Security (WS-Security) und Transaktionen sind explizit zu konfigurieren, da containerseitige Defaults aus EJB wegfallen.
+
+Das Mapping von EJB-`@WebService` nach Spring erfolgt über eine eigenständige SOAP-Konfiguration (z. B. CXF oder Spring-WS), da die Infrastruktur anders aufgebaut ist.
+
+=== Zielrichtung der Migration
+
+Für dieses Projekt ist die Priorität klar:
+
+1. **Provider-Erhalt (CXF zuerst):** JAX-WS Services sollen vorrangig über den bestehenden Provider weiter betrieben werden. Für CXF gilt daher: Provider-Runtime und Boot-Integration haben Vorrang vor einer Umschreibung auf Spring-WS.
+2. **Spring-WS (geringere Priorität):** Eine Migration auf Spring-WS ist möglich, aber nur nachgelagert. Sie erfordert eine bewusste Neumodellierung der SOAP-Infrastruktur.
+
+=== Bewertung der Spring-Unterstützung
+
+Spring Boot stellt keinen eigenen JAX-WS Stack bereit. Provider-Integrationen stammen aus den jeweiligen Projekten und müssen pro Zielarchitektur geprüft werden:
+
+- **CXF:** Integration erfolgt über Apache CXF (`cxf-spring-boot-starter-jaxws`). Der offizielle CXF Starter bietet Jakarta EE 10 und Spring 6 Unterstützung (ab CXF 4.x).
+- **Spring-WS:** Alternative SOAP-Implementierung mit eigener Modellierung (Endpoint-Beans, WS-Konfiguration). Für das Projekt ist dies eine optionale Zielarchitektur mit niedriger Priorität.
+
+Die Entscheidung, ob Provider-Erhalt oder Spring-WS gewählt wird, ist eine Architekturentscheidung. Sie hängt von vorhandenen WSDLs, Security-Policies, Runtime-Anforderungen und bestehenden CXF-Konfigurationen ab.
+
+=== Automatische CXF-Konfiguration (GenerateCxfJaxwsConfig)
+
+Die Recipe `GenerateCxfJaxwsConfig` automatisiert die CXF-Integration für JAX-WS Endpoints:
+
+==== Scan-Phase
+
+1. Erkennt `@WebService` und `@WebServiceProvider` Annotationen (javax.* und jakarta.*)
+2. Prüft auf vorhandene CXF-Dependencies im effektiven Maven-Modell (inkl. Parent-POMs)
+3. Erkennt Spring-WS-Konflikte (`spring-ws-core`, `spring-boot-starter-web-services`)
+4. Ermittelt das Spring Boot Application Package für die Konfigurationsklasse
+
+==== Generierte Artefakte
+
+Für jedes Modul mit JAX-WS Endpoints werden folgende Artefakte erzeugt:
+
+1. **JaxwsConfiguration.java** - `@Configuration`-Klasse mit `@Bean Endpoint` für jeden Service (bei Namenskonflikten: automatisches Suffix)
+2. **Maven-Dependency** - `org.apache.cxf:cxf-spring-boot-starter-jaxws:4.1.4`
+3. **cxf.path Property** - Servlet-Mapping in `application.properties` (nur bei nicht-default basePath und wenn nicht bereits konfiguriert)
+
+==== Endpoint-Pfad-Ableitung
+
+Der Publish-Pfad für jeden Endpoint wird wie folgt abgeleitet:
+
+1. **Default:** Klassenname als Pfad-Segment (z. B. `MyService` -> `/MyService`)
+2. **Optional:** `@WebService(name=...)` wenn vorhanden UND URL-safe (nur alphanumerisch, `-`, `_`)
+3. **Bei ungültigem name-Attribut:** Default (Klassenname) + `@NeedsReview`
+4. **Bei Pfad-Kollisionen:** Eindeutiger Suffix + `@NeedsReview`
+
+IMPORTANT: Das `serviceName`-Attribut ist WSDL-spezifisch und wird NICHT als URL-Pfad verwendet.
+
+==== Edge-Cases und Konfliktbehandlung
+
+[cols="1,2"]
+|===
+| Situation | Verhalten
+
+| Vorhandene CXF-Config (JAXRSServerFactoryBean, Endpoint-Beans)
+| Keine Konfiguration generiert, nur Dependencies ergänzt
+
+| Spring-WS Dependencies vorhanden
+| POM-Kommentar-Marker (`@NeedsReview: JAX-WS Migration Conflict`); keine CXF-Config generiert
+
+| Mehrere Provider erkannt
+| Effektives Maven-Modell entscheidet; bei Ambiguität `@NeedsReview`
+
+| cxf.path bereits konfiguriert
+| Kein Append; Kommentar zeigt Quelle (properties/yaml/profile)
+
+| Module ohne @WebService
+| Keine Änderung
+|===
+
+=== Konfiguration über project.yaml
+
+[source,yaml]
+----
+jaxws:
+  provider: cxf        # cxf | manual (Default: cxf)
+  basePath: /services  # Servlet-Mapping (Default: /services)
+----
+
+==== Provider-Optionen
+
+[cols="1,3"]
+|===
+| Provider | Beschreibung
+
+| `cxf` (Default)
+| Automatische CXF-Konfiguration: `@Bean Endpoint`, CXF Dependency, `cxf.path` Property
+
+| `manual`
+| Keine automatische Verarbeitung; JAX-WS Endpoints bleiben unverändert für manuelle Migration
+|===
+
+==== basePath-Konfiguration
+
+Der `jaxws.basePath` definiert das CXF Servlet-Mapping. Default: `/services`
+
+Beispiel: Bei `basePath: /ws` werden Endpoints unter `/ws/MyService` erreichbar.
+
+Die Property `cxf.path` wird in `application.properties` gesetzt, jedoch nur wenn:
+
+* basePath vom Default (`/services`) abweicht
+* Keine bestehende `cxf.path` Konfiguration gefunden wurde (in properties, yaml oder profile)
+
+[source,properties]
+----
+# Nur bei nicht-default basePath:
+cxf.path=/ws
+----
+
+NOTE: Bei default basePath `/services` wird keine `cxf.path` Property geschrieben, da CXF diesen Default bereits verwendet.
+
+=== Generierte Konfigurationsklasse
+
+[source,java]
+----
+package com.example;
+
+import jakarta.xml.ws.Endpoint;
+import org.apache.cxf.Bus;
+import org.apache.cxf.jaxws.EndpointImpl;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class JaxwsConfiguration {
+
+    @Bean
+    public Endpoint myServiceEndpoint(Bus bus, MyServiceImpl myServiceImpl) {
+        EndpointImpl endpoint = new EndpointImpl(bus, myServiceImpl);
+        endpoint.publish("/MyService");
+        return endpoint;
+    }
+}
+----
+
+NOTE: Bei Namenskonflikten wird ein automatischer Suffix hinzugefügt (z. B. `JaxwsConfiguration2`).
+
+=== Manuelle Migration (provider: manual)
+
+Wenn `jaxws.provider: manual` konfiguriert ist:
+
+1. Keine automatische Verarbeitung der `@WebService`-Klassen
+2. Keine CXF-Dependencies werden hinzugefügt
+3. Keine Konfigurationsklasse wird generiert
+
+Dies ermöglicht eine bewusste Entscheidung für Spring-WS oder andere Alternativen. Die Migration muss vollständig manuell durchgeführt werden.
+
+=== Provider-Dokumentation
+
+****
+* https://cxf.apache.org/[Apache CXF Documentation]
+* https://cxf.apache.org/docs/springboot.html[CXF Spring Boot Integration]
+* https://spring.io/projects/spring-ws[Spring Web Services]
+* https://jakarta.ee/specifications/xml-web-services/4.0/jakarta-xml-ws-spec-4.0.html[Jakarta XML Web Services 4.0 Spec]
+****

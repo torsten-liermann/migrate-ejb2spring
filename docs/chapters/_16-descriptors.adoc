@@ -1,0 +1,17 @@
+== Deployment-Deskriptoren
+
+EJB-Anwendungen können Annotationen durch `ejb-jar.xml`, `web.xml`, `persistence.xml` und weitere Deskriptoren ergänzen oder überschreiben. In Spring Boot werden diese Konfigurationen in der Regel durch Java-Konfiguration und `application.properties` ersetzt. Die Migration muss daher sowohl Annotationen als auch Deskriptor-Overrides berücksichtigen.
+
+=== ejb-jar.xml
+
+`ejb-jar.xml` kann Transaktionsattribute, Interceptors, Security-Rollen oder JNDI-Namen deklarativ definieren. Diese Informationen müssen beim Umstieg in Spring explizit in Annotationen oder Konfigurationsklassen übernommen werden. Das Mapping folgt den Projektentscheidungen und den tatsächlichen Deskriptor‑Overrides.
+
+Deployment‑Deskriptoren dürfen Annotationen ergänzen oder überschreiben. Die Migration muss daher prüfen, ob Transaktions‑, Security‑ oder Interceptor‑Regeln in `ejb-jar.xml` von den Annotationen abweichen. Ohne diese Prüfung entstehen stille Verhaltensänderungen.
+
+=== web.xml
+
+`web.xml` steuert Filter, Listener, Security Constraints und Servlet-Mappings. In Spring Boot werden entsprechende Einstellungen über Java-Konfiguration, Security-Konfiguration und `application.properties` abgebildet. Einige Einstellungen, etwa `session-timeout`, lassen sich direkt übernehmen, andere erfordern eine Neubewertung der Web-Architektur.
+
+=== persistence.xml
+
+`persistence.xml` enthält die JPA-Konfiguration und definiert den Persistence-Provider. In Spring Boot wird diese Konfiguration typischerweise in `application.properties` und optionalen `@Configuration`-Klassen abgebildet. Unterschiede zwischen EclipseLink und Hibernate müssen dabei berücksichtigt werden.

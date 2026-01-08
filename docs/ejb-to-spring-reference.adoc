@@ -1,0 +1,121 @@
+= EJB 3.x / Jakarta EE zu Spring Boot Migration
+:toc: left
+:toclevels: 3
+:sectnums:
+:icons: font
+:source-highlighter: highlight.js
+:experimental:
+
+[.lead]
+Vollständige Referenz für die Migration von Enterprise JavaBeans (EJB) 3.x und Jakarta‑EE‑Konstrukten nach Spring Boot. Jeder Abschnitt zeigt VORHER (EJB/Jakarta EE) und NACHHER (Spring Boot) mit konkreten Code‑Beispielen.
+
+[IMPORTANT]
+====
+Spring Boot stellt keinen EJB‑Container bereit. Damit entfallen EJB‑spezifische Laufzeitdienste wie Pooling, Passivierung/Aktivierung bei Stateful Beans, containerverwaltetes Remoting, `@Lock`‑Semantik, MDB‑Runtime und JCA‑Resource‑Adapter. Die Migration ist daher ein Wechsel des Programmiermodells und nicht nur ein Annotationstausch.
+====
+
+=== Migrationskategorien
+
+[cols="1,2,2"]
+|===
+| Kategorie | Charakteristik | Beispiele
+
+| API‑nah (mechanisch)
+| Spring nutzt dieselben oder ähnliche APIs. Migration ist weitgehend mechanisch (Namespace‑Wechsel, Annotation‑Mapping).
+| JPA, Bean Validation, JSON-B, Servlet, JAX-RS → Spring MVC
+
+| Container‑Semantik (Architektur)
+| Der EJB‑Container bietet Laufzeitverhalten, das Spring nicht repliziert. Erfordert Architekturentscheidungen.
+| Stateful Beans, Singleton-Locking, MDB, Timer, JCA, Remoting
+|===
+
+[NOTE]
+====
+In diesem Projekt werden Beispiele mit Konstruktorinjektion gezeigt. Field Injection ist in den Beispielen nicht verwendet.
+====
+
+Konfigurationsreferenz: `docs/research/project-configuration-yaml.md`.
+
+// Kapitel-Includes
+include::chapters/_00-reference-apps.adoc[leveloffset=+1]
+
+include::chapters/_01-overview.adoc[leveloffset=+1]
+
+include::chapters/_02-session-beans.adoc[leveloffset=+1]
+
+include::chapters/_03-dependency-injection.adoc[leveloffset=+1]
+
+include::chapters/_04-transactions.adoc[leveloffset=+1]
+
+include::chapters/_05-message-driven.adoc[leveloffset=+1]
+
+include::chapters/_06-timer-service.adoc[leveloffset=+1]
+
+include::chapters/_07-async.adoc[leveloffset=+1]
+
+include::chapters/_08-security.adoc[leveloffset=+1]
+
+include::chapters/_09-interceptors.adoc[leveloffset=+1]
+
+include::chapters/_10-lifecycle.adoc[leveloffset=+1]
+
+include::chapters/_11-concurrency.adoc[leveloffset=+1]
+
+include::chapters/_12-jpa.adoc[leveloffset=+1]
+
+include::chapters/_13-exceptions.adoc[leveloffset=+1]
+
+include::chapters/_14-context.adoc[leveloffset=+1]
+
+include::chapters/_15-remote-local.adoc[leveloffset=+1]
+
+include::chapters/_16-descriptors.adoc[leveloffset=+1]
+
+include::chapters/_17-quick-reference.adoc[leveloffset=+1]
+
+include::chapters/_18-cdi.adoc[leveloffset=+1]
+
+include::chapters/_19-jca.adoc[leveloffset=+1]
+
+include::chapters/_20-testing.adoc[leveloffset=+1]
+
+include::chapters/_21-jaxrs.adoc[leveloffset=+1]
+
+include::chapters/_21a-jaxws.adoc[leveloffset=+1]
+
+include::chapters/_22-jsonb.adoc[leveloffset=+1]
+
+include::chapters/_23-websocket.adoc[leveloffset=+1]
+
+include::chapters/_24-batch.adoc[leveloffset=+1]
+
+include::chapters/_25-jndi.adoc[leveloffset=+1]
+
+include::chapters/_26-tx-rollback.adoc[leveloffset=+1]
+
+include::chapters/_27-entity-beans.adoc[leveloffset=+1]
+
+include::chapters/_28-xa-transactions.adoc[leveloffset=+1]
+
+
+include::chapters/_30-deep-dive.adoc[leveloffset=+1]
+
+include::chapters/_31-strategies.adoc[leveloffset=+1]
+
+include::chapters/_32-edge-cases.adoc[leveloffset=+1]
+
+include::chapters/_33-resources.adoc[leveloffset=+1]
+
+include::chapters/_35-mail.adoc[leveloffset=+1]
+
+include::chapters/_36-concurrency.adoc[leveloffset=+1]
+
+include::chapters/_37-jaxb.adoc[leveloffset=+1]
+
+include::chapters/_38-jsf.adoc[leveloffset=+1]
+
+include::chapters/_39-openrewrite-analysis.adoc[leveloffset=+1]
+
+include::chapters/_40-recipe-order.adoc[leveloffset=+1]
+
+include::chapters/_34-changelog.adoc[leveloffset=+1]

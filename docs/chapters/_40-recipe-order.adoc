@@ -1,0 +1,11 @@
+== Rezept-Reihenfolge
+
+Die Reihenfolge der Rezepte beeinflusst das Ergebnis der Migration. Einige Transformationen ändern Paketnamen oder Annotationen, die von nachfolgenden Rezepten erwartet werden. Daher ist eine feste Sequenz notwendig, um konsistente Ergebnisse zu erzielen.
+
+Beispiele:
+
+* Paket- und Import-Umstellungen müssen vor recipes laufen, die auf konkrete Typen matchen.
+* CDI-Migrationen sollten vor JAX-RS-Transformationen erfolgen, wenn die Klassensignaturen verändert werden.
+* Konfigurationsrezepte (z. B. `application.properties`) sollten nach den Code-Transformationen ausgeführt werden, damit sie vollständige Informationen aus dem Code beziehen können.
+
+Die Pipeline in `rewrite.yml` spiegelt diese Abhängigkeiten. Änderungen an der Reihenfolge sollten mit einem vollständigen Dry-Run validiert werden, um unerwünschte Nebenwirkungen zu vermeiden.

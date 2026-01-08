@@ -1,0 +1,39 @@
+== Exceptions
+
+EJB unterscheidet zwischen Application Exceptions und System Exceptions. Application Exceptions werden fachlich behandelt und führen standardmäßig nicht zu Rollback, während System Exceptions den Container in einen Fehlerzustand versetzen und einen Rollback auslösen. Spring kennt diese Unterscheidung nicht in gleicher Form. Stattdessen steuern `@Transactional`-Regeln, ob bei Checked- oder Runtime-Exceptions ein Rollback erfolgt.
+
+=== Application Exceptions in EJB
+
+`@ApplicationException` ermöglicht es, Ausnahmen explizit als fachlich zu markieren und das Rollback-Verhalten zu steuern. Das ist in vielen EJB-Anwendungen eine wichtige Grundlage für fachliche Fehlerbehandlung.
+
+Runtime‑Exceptions, die nicht als Application Exceptions markiert sind, werden in EJB als System‑Exceptions behandelt. Sie führen zu Rollback und können die betroffene Bean‑Instanz ungültig machen. In Spring muss dieses Verhalten im Fehler‑ und Retry‑Design abgebildet werden.
+
+.Beispiel: VORHER (EJB)
+[source,java]
+----
+import javax.ejb.ApplicationException;
+
+@ApplicationException(rollback = false)
+public class PricingRuleViolation extends Exception {
+    public PricingRuleViolation(String message) {
+        super(message);
+    }
+}
+----
+
+=== Spring-Äquivalent
+
+In Spring wird das Rollback-Verhalten in `@Transactional` definiert. Checked Exceptions führen standardmäßig nicht zu Rollback. Wenn fachliche Exceptions ebenfalls ein Rollback auslösen sollen, muss dies explizit angegeben werden.
+
+.Beispiel: NACHHER (Spring Boot)
+[source,java]
+----
+import org.springframework.transaction.annotation.Transactional;
+
+@Transactional(rollbackFor = PricingRuleViolation.class)
+public Money calculateTariff(Shipment shipment) throws PricingRuleViolation {
+    return pricingEngine.calculate(shipment);
+}
+----
+
+Migrationen müssen fachliche Exceptions identifizieren und bewusst entscheiden, welches Rollback-Verhalten erforderlich ist. EJB-`@ApplicationException`-Annotationen sollten in der Regel in Spring-Transaktionsregeln abgebildet werden.

@@ -1,0 +1,15 @@
+== XA-Transaktionen
+
+EJB-Container unterstützen JTA und XA-Transaktionen über den Application Server. Spring Boot kann XA ebenfalls nutzen, benötigt dafür aber einen passenden Transaktionsmanager (z. B. Atomikos, Narayana, Bitronix). Die Migration muss daher prüfen, ob verteilte Transaktionen weiterhin erforderlich sind oder ob eine alternative Integrationsstrategie möglich ist.
+
+=== JTA in EJB
+
+EJB nutzt standardmäßig JTA, wenn mehrere Ressourcen beteiligt sind. Die Transaktionssteuerung erfolgt über den Container und `@TransactionAttribute`. Die Konfiguration liegt häufig im Server und nicht in der Anwendung.
+
+=== XA in Spring Boot
+
+Spring Boot unterstützt JTA über spezielle Starter und einen expliziten `JtaTransactionManager`. Die Datenquellen müssen XA-fähig konfiguriert werden. Fehler in der Konfiguration führen zu partiellen Commits oder inkonsistenten Zuständen.
+
+=== Migrationsaspekte
+
+Für die Migration ist zu klären, ob XA fachlich erforderlich bleibt. Alternativen wie Outbox‑Pattern, Sagas oder idempotente Verarbeitung sind nur relevant, wenn verteilte Transaktionen ersetzt werden sollen. Wird XA weiterhin benötigt, sind JTA‑Manager und XA‑DataSources explizit zu konfigurieren und zu testen.

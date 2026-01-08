@@ -1,0 +1,752 @@
+#
+# OpenRewrite Rezepte für Jakarta EE 10 zu Spring Boot 3.x Migration
+# Testbasis: Cargo Tracker (hantsy/cargotracker WildFly Fork)
+#
+# Verwendung (empfohlen: Git Worktree):
+#   cd /path/to/cargotracker-wildfly
+#   git worktree add ../cargotracker-migration-test migration-test
+#   cd ../cargotracker-migration-test
+#   cp ../migrate-ejb2spring/migration-test/rewrite.yml .
+#
+# Oder via run-migration.sh:
+#   cd /path/to/migrate-ejb2spring/migration-test
+#   MIGRATION_WORKDIR=/path/to/cargotracker-migration-test ./run-migration.sh
+#
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.migration.JakartaEEToSpringBoot
+displayName: Jakarta EE 10 zu Spring Boot 3.x Migration
+description: |
+  Kombiniertes Rezept für die Migration von Jakarta EE 10 Anwendungen nach Spring Boot 3.x.
+  Getestet mit Cargo Tracker Referenzanwendung.
+
+recipeList:
+  # ============================================
+  # Phase 1: JAX-RS → Spring MVC
+  # ============================================
+
+  # @Path → @RequestMapping/@RestController
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.ws.rs.Path
+      newFullyQualifiedTypeName: org.springframework.web.bind.annotation.RequestMapping
+
+  # @GET → @GetMapping
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.ws.rs.GET
+      newFullyQualifiedTypeName: org.springframework.web.bind.annotation.GetMapping
+
+  # @POST → @PostMapping
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.ws.rs.POST
+      newFullyQualifiedTypeName: org.springframework.web.bind.annotation.PostMapping
+
+  # @PUT → @PutMapping
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.ws.rs.PUT
+      newFullyQualifiedTypeName: org.springframework.web.bind.annotation.PutMapping
+
+  # @DELETE → @DeleteMapping
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.ws.rs.DELETE
+      newFullyQualifiedTypeName: org.springframework.web.bind.annotation.DeleteMapping
+
+  # @PathParam → @PathVariable
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.ws.rs.PathParam
+      newFullyQualifiedTypeName: org.springframework.web.bind.annotation.PathVariable
+
+  # @QueryParam → @RequestParam
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.ws.rs.QueryParam
+      newFullyQualifiedTypeName: org.springframework.web.bind.annotation.RequestParam
+
+  # @Produces → produces in @RequestMapping (nur Import-Entfernung)
+  - org.openrewrite.java.RemoveUnusedImports
+
+  # ============================================
+  # Phase 2: EJB → Spring Stereotypes
+  # ============================================
+
+  # @Stateless → @Service
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.ejb.Stateless
+      newFullyQualifiedTypeName: org.springframework.stereotype.Service
+
+  # @Singleton → @Component (mit Anmerkung: Default ist Singleton in Spring)
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.ejb.Singleton
+      newFullyQualifiedTypeName: org.springframework.stereotype.Component
+
+  # @Startup → entfernen (Spring Beans sind nach Context-Start verfügbar)
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPattern: "@jakarta.ejb.Startup"
+
+  # @Local → entfernen (keine Bedeutung in Spring)
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPattern: "@jakarta.ejb.Local"
+
+  # @LocalBean → entfernen
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPattern: "@jakarta.ejb.LocalBean"
+
+  # ============================================
+  # Phase 3: CDI → Spring DI
+  # ============================================
+
+  # @Inject → @Autowired (nur Import-Ersetzung)
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.inject.Inject
+      newFullyQualifiedTypeName: org.springframework.beans.factory.annotation.Autowired
+
+  # @Named → @Component (Beans) bzw. @Qualifier (Injection Points)
+  - com.github.rewrite.ejb.MigrateNamedToComponent:
+      strategy: migrate-to-spring
+
+  # @ApplicationScoped/@Dependent → intelligente Migration
+  # WICHTIG: Prüft ob bereits ein Spring Stereotype existiert (@Component, @Service, etc.)
+  # - Wenn JA: entfernt @ApplicationScoped/@Dependent (redundant)
+  # - Wenn NEIN: ersetzt mit @Component
+  # Verhindert doppelte @Component Annotationen bei Klassen mit @Named + @ApplicationScoped
+  - com.github.rewrite.ejb.MigrateCdiScopesToSpring
+
+  # @RequestScoped → @RequestScope
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.enterprise.context.RequestScoped
+      newFullyQualifiedTypeName: org.springframework.web.context.annotation.RequestScope
+
+  # @SessionScoped → @SessionScope
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.enterprise.context.SessionScoped
+      newFullyQualifiedTypeName: org.springframework.web.context.annotation.SessionScope
+
+  # ============================================
+  # Phase 4: Transaktionen
+  # HINWEIS: @TransactionAttribute wird von Java-Rezept behandelt!
+  # ============================================
+
+  # @TransactionManagement → entfernen (Spring verwendet CMT per default)
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPattern: "@jakarta.ejb.TransactionManagement"
+
+  # ============================================
+  # Phase 5: CDI Events → Spring Events
+  # HINWEIS: Event<T> und @Observes werden von Java-Rezept behandelt!
+  # ============================================
+
+  # ============================================
+  # Phase 6: JPA Persistence Context
+  # ============================================
+
+  # @PersistenceContext bleibt (von Spring Data JPA unterstützt)
+  # Nur unitName anpassen falls nötig
+
+  # ============================================
+  # Phase 7: Ressourcen
+  # HINWEIS: @Resource(lookup=...) wird von Java-Rezept behandelt!
+  # ============================================
+
+  # ============================================
+  # Cleanup
+  # ============================================
+
+  - org.openrewrite.java.RemoveUnusedImports
+  - org.openrewrite.java.format.AutoFormat
+
+---
+# ============================================
+# Separate Rezepte für manuelle Kontrolle
+# ============================================
+
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.migration.JaxRsToSpringMvc
+displayName: JAX-RS zu Spring MVC
+description: Migriert nur JAX-RS Annotationen zu Spring MVC
+
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.ws.rs.Path
+      newFullyQualifiedTypeName: org.springframework.web.bind.annotation.RequestMapping
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.ws.rs.GET
+      newFullyQualifiedTypeName: org.springframework.web.bind.annotation.GetMapping
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.ws.rs.POST
+      newFullyQualifiedTypeName: org.springframework.web.bind.annotation.PostMapping
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.ws.rs.PUT
+      newFullyQualifiedTypeName: org.springframework.web.bind.annotation.PutMapping
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.ws.rs.DELETE
+      newFullyQualifiedTypeName: org.springframework.web.bind.annotation.DeleteMapping
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.ws.rs.PathParam
+      newFullyQualifiedTypeName: org.springframework.web.bind.annotation.PathVariable
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.ws.rs.QueryParam
+      newFullyQualifiedTypeName: org.springframework.web.bind.annotation.RequestParam
+  - org.openrewrite.java.RemoveUnusedImports
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.migration.EjbToSpringService
+displayName: EJB zu Spring Service
+description: Migriert EJB Session Beans zu Spring Services
+
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.ejb.Stateless
+      newFullyQualifiedTypeName: org.springframework.stereotype.Service
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.ejb.Singleton
+      newFullyQualifiedTypeName: org.springframework.stereotype.Component
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPattern: "@jakarta.ejb.Startup"
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPattern: "@jakarta.ejb.Local"
+  - org.openrewrite.java.RemoveAnnotation:
+      annotationPattern: "@jakarta.ejb.LocalBean"
+  - org.openrewrite.java.RemoveUnusedImports
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.migration.CdiToSpringDi
+displayName: CDI zu Spring DI
+description: Migriert CDI Dependency Injection zu Spring
+
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.inject.Inject
+      newFullyQualifiedTypeName: org.springframework.beans.factory.annotation.Autowired
+  - com.github.rewrite.ejb.MigrateNamedToComponent:
+      strategy: migrate-to-spring
+  # Intelligente Scope-Migration (prüft auf existierende Stereotypes)
+  - com.github.rewrite.ejb.MigrateCdiScopesToSpring
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.enterprise.context.RequestScoped
+      newFullyQualifiedTypeName: org.springframework.web.context.annotation.RequestScope
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.enterprise.context.SessionScoped
+      newFullyQualifiedTypeName: org.springframework.web.context.annotation.SessionScope
+  - org.openrewrite.java.RemoveUnusedImports
+
+---
+# ============================================
+# Milestone 2: Spring Dependencies
+# ============================================
+
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.migration.AddSpringDependencies
+displayName: Spring Framework Dependencies hinzufuegen
+description: |
+  Fuegt die minimalen Spring Framework Dependencies fuer die Kompilierung hinzu.
+  Dies ist Schritt 1 vor der vollstaendigen Spring Boot Migration.
+
+recipeList:
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.springframework
+      artifactId: spring-context
+      version: 6.1.14
+      scope: compile
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.springframework
+      artifactId: spring-web
+      version: 6.1.14
+      scope: compile
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.springframework
+      artifactId: spring-tx
+      version: 6.1.14
+      scope: compile
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.springframework
+      artifactId: spring-jms
+      version: 6.1.14
+      scope: compile
+
+---
+# ============================================
+# OPTION 1: Spring Boot Parent (opt-in)
+# Fuer neue Projekte oder einfache Strukturen ohne Corporate Parent
+# ============================================
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.migration.AddSpringBootParent
+displayName: Spring Boot Parent POM (opt-in)
+description: |
+  Setzt Spring Boot als Parent POM. Fuer neue Projekte oder einfache Strukturen.
+  ACHTUNG: Ersetzt einen bestehenden Corporate Parent! Fuer Enterprise-Projekte
+  besser AddSpringBootBom verwenden.
+
+recipeList:
+  # Spring Boot Parent POM
+  # WICHTIG: relativePath leer setzen, um Maven-Warnung in Monorepo/Workspace zu vermeiden
+  - org.openrewrite.maven.AddParentPom:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-starter-parent
+      version: 3.5.9
+      relativePath: ""
+
+  # Spring Boot Starter Web
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-starter-web
+
+  # Spring Boot Starter Data JPA
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-starter-data-jpa
+
+  # HINWEIS: JMS-Starter wird NICHT automatisch hinzugefügt (Provider-Neutralität)
+  # Für JMS-Projekte: Separat AddJmsArtemisStarter oder AddJmsActiveMQStarter aufrufen
+
+  # Spring Boot Maven Plugin (Version wird vom Parent POM verwaltet)
+  - org.openrewrite.maven.AddPlugin:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-maven-plugin
+
+---
+# ============================================
+# OPTION 2: Spring Boot BOM (Enterprise-freundlich, empfohlen)
+# Laesst bestehenden Corporate Parent intakt
+# ============================================
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.migration.AddSpringBootBom
+displayName: Spring Boot BOM Import (Enterprise-freundlich)
+description: |
+  Importiert spring-boot-dependencies BOM in dependencyManagement.
+  Laesst bestehenden Corporate Parent intakt - ideal fuer Enterprise-Projekte.
+  Fuegt Spring Boot Starters und Plugin mit expliziten Versionen hinzu.
+  Pinnt Logback/SLF4J Versionen fuer Konsistenz mit Boot 3.5.x.
+
+recipeList:
+  # ============================================
+  # Spring Boot BOM in dependencyManagement importieren
+  # HINWEIS: Versionen sind hardcoded (3.5.9) weil OpenRewrite
+  # Maven-Properties nicht auflöst. Für Upgrades alle Versionen ändern.
+  # ============================================
+  - org.openrewrite.maven.AddManagedDependency:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-dependencies
+      version: 3.5.9
+      scope: import
+      type: pom
+
+  # ============================================
+  # Logback/SLF4J Versionen explizit pinnen (Boot 3.5.9 kompatibel)
+  # Verhindert Version-Mismatch durch andere BOMs/Dependencies
+  # ============================================
+  - org.openrewrite.maven.AddManagedDependency:
+      groupId: ch.qos.logback
+      artifactId: logback-classic
+      version: 1.5.22
+
+  - org.openrewrite.maven.AddManagedDependency:
+      groupId: ch.qos.logback
+      artifactId: logback-core
+      version: 1.5.22
+
+  - org.openrewrite.maven.AddManagedDependency:
+      groupId: org.slf4j
+      artifactId: slf4j-api
+      version: 2.0.17
+
+  # ============================================
+  # Spring Boot Starters
+  # ============================================
+  # Spring Boot Starter Web (explizit gepinnt für Transparenz)
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-starter-web
+      version: 3.5.9
+
+  # Spring Boot Starter Data JPA (explizit gepinnt für Transparenz)
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-starter-data-jpa
+      version: 3.5.9
+
+  # HINWEIS: JMS-Starter wird NICHT automatisch hinzugefügt (Provider-Neutralität)
+  # Für JMS-Projekte: Separat AddJmsArtemisStarter oder AddJmsActiveMQStarter aufrufen
+
+  # ============================================
+  # Spring Boot Maven Plugin (explizite Version da kein Parent)
+  # ============================================
+  - org.openrewrite.maven.AddPlugin:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-maven-plugin
+      version: 3.5.9
+
+---
+# ============================================
+# JMS Provider Rezepte (manuell aufrufen bei Bedarf)
+# ============================================
+
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.migration.AddJmsArtemisStarter
+displayName: Spring Boot Artemis JMS Starter
+description: |
+  Fügt spring-boot-starter-artemis für ActiveMQ Artemis hinzu.
+  NUR bei Projekten mit @MessageDriven oder JMS-Nutzung verwenden.
+
+recipeList:
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-starter-artemis
+      version: 3.5.9
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.migration.AddJmsActiveMQStarter
+displayName: Spring Boot ActiveMQ JMS Starter
+description: |
+  Fügt spring-boot-starter-activemq für Classic ActiveMQ hinzu.
+  NUR bei Projekten mit @MessageDriven oder JMS-Nutzung verwenden.
+
+recipeList:
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-starter-activemq
+      version: 3.5.9
+
+---
+# ============================================
+# ALIAS: AddSpringBootStarter (Enterprise Default)
+# Verwendet AddSpringBootBom (sicherer Default fuer Corporate Environments)
+# Fuer einfache Projekte: direkt AddSpringBootParent verwenden
+# ============================================
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.migration.AddSpringBootStarter
+displayName: Spring Boot Starter Konfiguration
+description: |
+  Fuegt Spring Boot Dependencies hinzu.
+  Verwendet AddSpringBootBom (laesst Corporate Parent intakt).
+  Fuer einfache Projekte ohne Corporate Parent: AddSpringBootParent direkt verwenden.
+
+recipeList:
+  - com.github.migration.AddSpringBootBom
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.migration.FullSpringBootMigration
+displayName: Vollstaendige Spring Boot Migration (M2+M3)
+description: |
+  Kombiniert Annotations-Migration mit Dependency-Management.
+  Fuehrt M1-M3 des Migrationsplans durch inkl. Compile-Blocker.
+  WICHTIG: M3 Java-Rezepte werden ZUERST ausgefuehrt!
+
+recipeList:
+  # ============================================
+  # Test-Code Cleanup (MUSS VOR Event-Migration laufen!)
+  # Behandelt Test-spezifische Patterns wie mock(Event.class)
+  # ============================================
+  - com.github.rewrite.ejb.MigrateCdiEventMocksToSpring
+
+  # ============================================
+  # M3: Compile-Blocker (MÜSSEN ZUERST laufen!)
+  # Diese Rezepte behandeln komplexe Transformationen
+  # ============================================
+  - com.github.rewrite.ejb.MigrateCdiEventsToSpring
+
+  # CDI Qualifier auf ApplicationEventPublisher/EventListener werden von Spring ignoriert
+  # Diese Rezept markiert solche Stellen mit @NeedsReview zur manuellen Prüfung
+  - com.github.rewrite.ejb.MarkCdiQualifiersForReview
+
+  - com.github.rewrite.ejb.MigrateTransactionAttributeJakarta
+  # @PostConstruct + @Transactional -> @EventListener(ApplicationReadyEvent.class)
+  - com.github.rewrite.ejb.MigratePostConstructTransactionalToApplicationReady
+  - com.github.rewrite.ejb.MigrateResourceLookupToAutowired
+
+  # ============================================
+  # M4: Laufzeit-Blocker
+  # Diese Rezepte behandeln CDI-spezifische Patterns
+  # ============================================
+  - com.github.rewrite.ejb.MigrateCdiInstanceToObjectProvider
+
+  # CDI InjectionPoint hat keine Spring-Entsprechung
+  # Logger-Producer-Klassen werden GENERISCH erkannt (beliebiger Klassenname, nicht nur "LoggerProducer")
+  # Das kombinierte Recipe (ScanningRecipe mit Accumulator):
+  # 1. Sammelt FQN/SimpleName aller Logger-Producer-Klassen
+  # 2. Loescht die Producer-Klassen (Datei-Deletion)
+  # 3. Entfernt alle Referenzen (Imports, .addClass()-Aufrufe)
+  # WICHTIG: MUSS VOR ChangeType @Produces -> @Bean laufen, sonst werden Producer nicht erkannt!
+  - com.github.rewrite.ejb.RemoveLoggerProducerCompletely
+
+  # CDI @Produces ohne InjectionPoint -> @Bean
+  # (Einfache Producer-Methoden)
+  # HINWEIS: MigrateCdiProducerToSpringBean ist eine alternative, umfassendere Lösung
+  # die auch @Configuration hinzufügt. Für Cargo Tracker reicht ChangeType.
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.enterprise.inject.Produces
+      newFullyQualifiedTypeName: org.springframework.context.annotation.Bean
+
+  # @Inject/@Autowired Logger → private static final Logger LOGGER = Logger.getLogger(...)
+  # MUSS NACH RemoveLoggerProducerCompletely laufen!
+  - com.github.rewrite.ejb.MigrateLoggerInjectionToFactory
+
+  # ============================================
+  # M4.5: JAX-RS Client Runtime (Runtime-Blocker!)
+  # Original WildFly CargoTracker nutzt server-provided RESTEasy.
+  # Für Spring Boot muss eine JAX-RS Client Implementation hinzugefügt werden.
+  #
+  # Optionen (konfigurierbar in Projekt-YAML):
+  #   provider: jersey   (empfohlen für Spring Boot, beste Integration)
+  #   provider: resteasy (WildFly-kompatibel)
+  #   provider: cxf      (Apache CXF)
+  # ============================================
+  - com.github.rewrite.ejb.MigrateJaxRsClient:
+      strategy: keep-jaxrs
+      provider: jersey
+
+  # ============================================
+  # M5: JMS & Scheduling
+  # Diese Rezepte behandeln Message-Driven Beans und Timer
+  # ============================================
+
+  # @MessageDriven → @Component + @JmsListener auf onMessage()
+  - com.github.rewrite.ejb.MigrateMessageDrivenToJmsListener
+
+  # JMSContext (CDI-spezifisch) → @NeedsReview mit Hinweis auf JmsTemplate/ConnectionFactory
+  # JMSContext hat keine direkte Spring-Entsprechung, muss manuell migriert werden
+  - com.github.rewrite.ejb.MarkJmsContextForReview
+
+  # @Schedule(minute="*/2", hour="*") → @Scheduled(cron="0 */2 * * * *")
+  - com.github.rewrite.ejb.MigrateScheduleToScheduled
+
+  # Programmatic EJB TimerService → TaskScheduler (konservativ)
+  - com.github.rewrite.ejb.MigrateEjbProgrammaticTimers
+
+  # ============================================
+  # M6: Persistence & Configuration
+  # Diese Rezepte behandeln persistence.xml Migration
+  # ============================================
+
+  # persistence.xml → application.properties
+  # Extrahiert JPA-Konfiguration und generiert Spring Boot Properties
+  - com.github.rewrite.ejb.MigratePersistenceXmlToProperties
+
+  # ============================================
+  # M6.3: JNDI Resource Migration (Stufe 2) - Teil 1
+  # ConnectionFactory wird hier behandelt, DataSource/String in Phase 1.5
+  # ============================================
+
+  # ConnectionFactory: entfernt @NeedsReview (Spring Boot Auto-Config)
+  # und @JMSDestinationDefinition Annotationen
+  - com.github.rewrite.ejb.MigrateJmsConnectionFactory
+
+  # NOTE: MigrateDataSourceDefinition und MigrateJndiStringToValue
+  # laufen in Phase 1.5 (PropertyMigration), NACHDEM application.properties
+  # von MigratePersistenceXmlToProperties erzeugt wurde.
+
+  # ============================================
+  # Einfache Annotations-Migrationen
+  # ============================================
+  - com.github.migration.JakartaEEToSpringBoot
+
+  # ============================================
+  # Dependencies
+  # ============================================
+  - com.github.migration.AddSpringBootStarter
+
+  # ============================================
+  # JMS Provider (nur für Projekte mit @MessageDriven/@JmsListener)
+  # HINWEIS: Für Projekte OHNE JMS diese Zeile entfernen!
+  # CargoTracker verwendet JMS, daher hier Artemis.
+  # Für ActiveMQ Classic stattdessen: com.github.migration.AddJmsActiveMQStarter
+  # ============================================
+  - com.github.migration.AddJmsArtemisStarter
+
+  # ============================================
+  # Spring Boot Application Klasse generieren
+  # WICHTIG: Ohne diese Klasse startet Spring Boot nicht!
+  # ============================================
+  - com.github.rewrite.ejb.AddSpringBootApplication:
+      applicationClassName: CargoTrackerApplication
+
+  # ============================================
+  # Dev Wrapper fuer Testcontainers (Start via test classpath)
+  # Erzeugt DevContainersConfig + DevCargoTrackerApplication in src/test/java
+  # ============================================
+  - com.github.rewrite.ejb.AddTestcontainersDevApplication:
+      applicationClassName: CargoTrackerApplication
+      devApplicationClassName: DevCargoTrackerApplication
+      databaseType: postgresql
+      containerImage: postgres:16-alpine
+
+  # ============================================
+  # NOTE: AddEnableJmsAndScheduling ist NICHT hier, sondern als separate Phase!
+  # Grund: ScanningRecipes sehen Änderungen aus dem gleichen Run nicht.
+  # @JmsListener/@Scheduled werden erst in diesem Run erzeugt, daher muss
+  # AddEnableJmsAndScheduling als separater Rewrite-Run danach laufen.
+  # ============================================
+
+  # ============================================
+  # @NeedsReview Annotation
+  # Fügt @NeedsReview zu migrierten Elementen hinzu, die manuelle Prüfung erfordern
+  # ============================================
+  - com.github.rewrite.ejb.AddNeedsReviewAnnotation
+
+  # ============================================
+  # Cleanup (MUSS am Ende laufen!)
+  # Entfernt alle unbenutzten Imports nach allen Transformationen
+  # HINWEIS: CDI Event-Imports werden von MigrateCdiEventsToSpring via
+  # doAfterVisit(new RemoveImport(..., true)) entfernt, da RemoveUnusedImports
+  # bei "unknown types" keine Imports entfernt.
+  # ============================================
+  - org.openrewrite.java.RemoveUnusedImports
+
+# ============================================
+# Phase 1.3: Enable JMS/Scheduling (separate Phase!)
+# MUSS nach Phase 1 laufen, da ScanningRecipes Änderungen aus dem
+# gleichen Run nicht sehen. @JmsListener/@Scheduled werden erst in
+# Phase 1 erzeugt, daher muss diese Phase separat danach laufen.
+# ============================================
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.EnableJmsAndSchedulingPhase
+displayName: Enable JMS and Scheduling Annotations
+description: >-
+  Adds @EnableJms, @EnableScheduling, @EnableAsync to the @SpringBootApplication class
+  based on actual usage of @JmsListener, @Scheduled, @Async annotations.
+  Must run AFTER FullSpringBootMigration (which creates these annotations).
+recipeList:
+  - com.github.rewrite.ejb.AddEnableJmsAndScheduling
+
+# ============================================
+# Phase 1.5: Property Migration (DataSource + String Properties)
+# MUSS nach Phase 1 laufen, da application.properties erst von
+# MigratePersistenceXmlToProperties erzeugt wird!
+# ============================================
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.PropertyMigration
+displayName: Migrate DataSource and String Properties
+description: >-
+  Migrates @DataSourceDefinition and JNDI String lookups to application.properties.
+  Must run AFTER FullSpringBootMigration (which creates application.properties).
+recipeList:
+  # @DataSourceDefinition → spring.datasource.* properties
+  - com.github.rewrite.ejb.MigrateDataSourceDefinition
+
+  # @Autowired String mit JNDI lookup → @Value("${property.name}")
+  - com.github.rewrite.ejb.MigrateJndiStringToValue
+
+# ============================================
+# Phase 2: JMS Destination Migration
+# MUSS nach Phase 1.5 laufen, damit @NeedsReview-Annotationen
+# bereits im Code vorhanden sind.
+# ============================================
+---
+# Phase 2: JMS Destination Migration (generiert JmsConfiguration.java)
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.JmsDestinationMigration
+displayName: Migrate JMS Destinations
+description: >-
+  Generates JmsConfiguration with @Bean definitions and removes @NeedsReview from Destination fields.
+  Must be run after the main migration (FullSpringBootMigration).
+recipeList:
+  - com.github.rewrite.ejb.MigrateJmsDestination
+
+---
+# Phase 2.5a: JoinFaces for JSF Support (2026-01-16 Decision)
+# JSF is kept as UI technology via JoinFaces on Spring Boot.
+# Reasons: Developer JSF know-how, no UI rewrite needed, PrimeFaces works.
+#
+# Version Compatibility (Finding 2):
+#   JoinFaces 5.3.x + Spring Boot 3.3-3.5.x + Jakarta EE 10 + Java 17+
+#
+# Priority Rule (Finding 1):
+#   MyFaces takes precedence if detected. PrimeFaces works with both.
+#
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.migration.AddJoinFacesDependencies
+displayName: Add JoinFaces Dependencies for JSF Support
+description: >-
+  Adds JoinFaces dependencies to enable JSF applications on Spring Boot.
+  Detects PrimeFaces and MyFaces usage and adds appropriate starters.
+  JSF code remains unchanged; only file structure needs adjustment.
+recipeList:
+  - com.github.rewrite.ejb.AddJoinFacesDependencies
+
+---
+# Phase 2.5a-ii: JSF Resource File Moves (Finding 3)
+# OpenRewrite CAN move files via org.openrewrite.MoveFile.
+# These recipes move JSF resources to JoinFaces-expected locations.
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.migration.MoveJsfResources
+displayName: Move JSF Resources to META-INF
+description: >-
+  Moves faces-config.xml and XHTML files to JoinFaces-expected locations.
+  faces-config.xml -> src/main/resources/META-INF/
+  *.xhtml -> src/main/resources/META-INF/resources/
+recipeList:
+  # Move faces-config.xml to META-INF
+  - org.openrewrite.MoveFile:
+      fileMatcher: "**/WEB-INF/faces-config.xml"
+      moveTo: src/main/resources/META-INF/
+
+  # Move XHTML files to META-INF/resources
+  - org.openrewrite.MoveFile:
+      fileMatcher: "**/webapp/*.xhtml"
+      moveTo: src/main/resources/META-INF/resources/
+
+  # Move XHTML in subdirectories
+  - org.openrewrite.MoveFile:
+      fileMatcher: "**/webapp/**/*.xhtml"
+      moveTo: src/main/resources/META-INF/resources/
+
+---
+# Phase 2.5a-iii: JSF Migration Checklist (Finding 6)
+# Marks JSF classes with checklist of configuration items to verify.
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.migration.JsfMigrationChecklist
+displayName: JSF Migration Checklist
+description: >-
+  Checklist for JSF migration to JoinFaces (Finding 6):
+  1. faces-config.xml version (2.3+ for Jakarta Faces)
+  2. javax.faces.PROJECT_STAGE property (Development/Production)
+  3. FacesServlet mapping (handled by JoinFaces auto-config)
+  4. PrimeFaces theme configuration (primefaces.THEME)
+  5. ResourceLibraryContracts (if used)
+  6. CDI scopes: @ViewScoped and @ConversationScoped require CDI bridge
+recipeList:
+  - com.github.rewrite.ejb.MarkJsfForMigration
+
+---
+# Phase 2.5b: Mark Manual Migrations (M7)
+# Marks code that cannot be automatically migrated and requires manual work.
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.MarkManualMigrations
+displayName: Mark Manual Migration Items
+description: >-
+  Adds @NeedsReview annotations to classes using Jakarta Batch, WebSocket.
+  These technologies require manual migration to Spring equivalents.
+  Also adds @Profile("manual-migration") to prevent runtime errors.
+  NOTE: JSF is handled by JoinFaces (see AddJoinFacesDependencies).
+recipeList:
+  # Jakarta Batch → Spring Batch
+  - com.github.rewrite.ejb.MarkJakartaBatchForMigration
+
+  # Jakarta WebSocket → Spring WebSocket
+  - com.github.rewrite.ejb.MarkWebSocketForMigration
+
+  # Programmatic EJB Timers → TaskScheduler (manual migration if not auto-migrated)
+  - com.github.rewrite.ejb.MarkEjbTimerServiceForReview
+
+  # JSF → JoinFaces (file structure only, code unchanged)
+  # Category changed from MANUAL_MIGRATION to CONFIGURATION (2026-01-16)
+  - com.github.rewrite.ejb.MarkJsfForMigration
+
+  # Safety Gate: Add @Profile("manual-migration") to prevent runtime errors
+  # Classes with @NeedsReview(MANUAL_MIGRATION) won't be loaded unless profile is active
+  - com.github.rewrite.ejb.AddProfileToManualMigrationClasses
+
+---
+# Phase 3: Report Generation (MUSS als letztes laufen!)
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.MigrationReportOnly
+displayName: Generate Migration Review Report
+description: >-
+  Generates MIGRATION-REVIEW.md based on @NeedsReview annotations.
+  Must be run AFTER JmsDestinationMigration to show only remaining items.
+recipeList:
+  - com.github.rewrite.ejb.GenerateMigrationReport

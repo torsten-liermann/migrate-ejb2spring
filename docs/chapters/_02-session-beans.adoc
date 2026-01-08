@@ -1,0 +1,379 @@
+== Session Beans
+
+Session Beans kapseln fachliche Anwendungslogik.
+Bei der Migration zählt nicht nur die Annotation, sondern die Semantik: Lebenszyklus, Nebenläufigkeit, Zustand und Transaktionen.
+EJB definiert ein containerzentriertes Modell mit klaren Garantien für Invocation, Transaktionen, Concurrency und Lifecycle.
+Spring arbeitet mit Dependency Injection und AOP-Proxies und erwartet, dass viele Regeln explizit umgesetzt werden.
+Eine saubere Migration beschreibt diese Unterschiede und zeigt, wie sie in Spring bewusst abgebildet werden.
+
+=== @Stateless -> Spring Service (stateless)
+
+Ein `@Stateless` Bean ist für kurze fachliche Operationen gedacht, die keinen Gesprächszustand zwischen Aufrufen halten (z. B. Buchung, Freigabe, Verfügbarkeitsprüfung).
+EJB garantiert, dass eine Instanz nicht parallel aufgerufen wird, macht aber keine Zusage über Instanzidentität oder Wiederverwendung.
+Instanzzustand über den Methodenaufruf hinaus ist nicht erlaubt.
+
+Spring kennt kein äquivalentes Session-Bean-Modell.
+Services werden in der Regel als Singleton erzeugt und über die gesamte Laufzeit geteilt.
+Der Container erzeugt keine neue Service-Instanz pro Aufruf.
+Die Migration erfordert deshalb eine bewusste Trennung von zustandsloser Logik und Zustand, explizite Thread-Sicherheit und klar gezogene Transaktionsgrenzen.
+
+.Beispiel: VORHER (EJB)
+[source,java]
+----
+import javax.ejb.Stateless;
+import javax.ejb.EJB;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
+
+@Stateless
+@TransactionAttribute(TransactionAttributeType.REQUIRED)
+public class FreightBookingService {
+
+    @EJB
+    private BookingRepository bookingRepository;
+
+    @EJB
+    private CapacityService capacityService;
+
+    public BookingId book(ShipmentRequest request) {
+        capacityService.assertCapacity(request);
+        return bookingRepository.createBooking(request);
+    }
+}
+----
+
+.Beispiel: NACHHER (Spring Boot)
+[source,java]
+----
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional
+public class FreightBookingService {
+
+    private final BookingRepository bookingRepository;
+    private final CapacityService capacityService;
+
+    public FreightBookingService(BookingRepository bookingRepository,
+                                 CapacityService capacityService) {
+        this.bookingRepository = bookingRepository;
+        this.capacityService = capacityService;
+    }
+
+    public BookingId book(ShipmentRequest request) {
+        capacityService.assertCapacity(request);
+        return bookingRepository.createBooking(request);
+    }
+}
+----
+
+EJB-Injection erfolgt typischerweise über Felder oder Setter und steht erst nach der Konstruktion zur Verfügung.
+Deshalb liegt Initialisierung häufig in `@PostConstruct`.
+In Spring ist der bevorzugte Weg die Konstruktorinjektion; Initialisierung gehört in den Konstruktor oder in eine explizite Init-Methode. `@PostConstruct` bleibt möglich, ist aber nicht das Standardmuster.
+
+[TIP]
+====
+Transaktionsmapping (Kurzfassung):
+
+* `@TransactionAttribute(REQUIRED)` -> `@Transactional`
+* `REQUIRES_NEW` -> `@Transactional(propagation = REQUIRES_NEW)`
+* `SUPPORTS` -> `@Transactional(propagation = SUPPORTS)`
+
+Details und Ausnahme-Regeln (checked vs. unchecked) werden im Transaktions-Kapitel beschrieben.
+====
+
+[CAUTION]
+====
+Nebenläufigkeit und Instanzzustand
+
+EJB garantiert, dass dieselbe Instanz nicht parallel aufgerufen wird.
+Das ist kein Freibrief für Instanzzustand.
+Instanzvariablen dürfen keinen Aufrufzustand tragen; das ist in EJB fachlich falsch und führt in Spring unmittelbar zu Race Conditions.
+
+.Beispiel (problematisch): Zustandsbehaftet in @Stateless
+[source,java]
+----
+@Stateless
+public class TariffCalculationService {
+    private Money tempTotal;
+
+    public Money calculate(Shipment shipment) {
+        this.tempTotal = computeBase(shipment);
+        return this.tempTotal.plus(computeSurcharges(shipment));
+    }
+}
+----
+
+Sauber ist die Nutzung lokaler Variablen oder explizit thread-sicherer Strukturen.
+====
+
+=== @Stateless mit Attributen
+
+.Beispiel: VORHER (EJB)
+[source,java]
+----
+import javax.ejb.Stateless;
+
+@Stateless(name = "rateEngine", description = "Berechnet Frachtraten")
+public class RateEngineBean {
+}
+----
+
+.Beispiel: NACHHER (Spring Boot)
+[source,java]
+----
+import org.springframework.stereotype.Service;
+
+/**
+ * Berechnet Frachtraten
+ */
+@Service("rateEngine")
+public class RateEngineBean {
+}
+----
+
+[NOTE]
+====
+`@Stateless(name=...)` war in EJB häufig mit JNDI-Namen verbunden.
+In Spring ist der String nur der Bean-Name, kein JNDI-Alias.
+====
+
+=== @Singleton -> @Service
+
+EJB-Singletons werden für geteilte fachliche Ressourcen eingesetzt (Referenzdaten, Regeln, Caches).
+Der Container garantiert eine Instanz pro Anwendung und stellt mit `@Lock` eine explizite Concurrency-Semantik bereit. `@Startup` steuert die Initialisierung.
+Außerdem sind Lifecycle-Callbacks wie `@PostConstruct` und `@PreDestroy` Teil des EJB-Modells.
+Mit `@DependsOn` lässt sich die Initialisierungsreihenfolge zwischen Singletons steuern.
+
+In Spring ist eine `@Service`-Bean ebenfalls ein Singleton, aber ohne diese Concurrency-Semantik.
+Locking muss explizit nachgebaut werden. `@PostConstruct`/`@PreDestroy` existieren, decken aber nicht alle EJB-Callbacks ab.
+Die automatische Migration transformiert `@Startup` + `@PostConstruct` zu `@EventListener(ApplicationReadyEvent.class)`, was der EJB-Spezifikation entspricht: Initialisierung vor der ersten Client-Anfrage (EJB Spec 4.8.1).
+
+.Beispiel: VORHER (EJB)
+[source,java]
+----
+import javax.ejb.Singleton;
+import javax.ejb.Startup;
+import javax.ejb.Lock;
+import javax.ejb.LockType;
+import javax.annotation.PostConstruct;
+
+@Singleton
+@Startup
+public class ReferenceDataCache {
+
+    private Map<String, TariffRule> rules;
+
+    @PostConstruct
+    public void init() {
+        rules = loadRules();
+    }
+
+    @Lock(LockType.READ)
+    public TariffRule findRule(String key) {
+        return rules.get(key);
+    }
+
+    @Lock(LockType.WRITE)
+    public void refresh() {
+        rules = loadRules();
+    }
+}
+----
+
+.Beispiel: NACHHER (Spring Boot)
+[source,java]
+----
+import org.springframework.stereotype.Service;
+import org.springframework.context.event.EventListener;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+@Service
+public class ReferenceDataCache {
+
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private Map<String, TariffRule> rules;
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void init() {
+        rules = loadRules();
+    }
+
+    public TariffRule findRule(String key) {
+        lock.readLock().lock();
+        try {
+            return rules.get(key);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public void refresh() {
+        lock.writeLock().lock();
+        try {
+            rules = loadRules();
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+}
+----
+
+[WARNING]
+====
+@Lock hat kein direktes Spring-Äquivalent. `@Lock(READ/WRITE)` muss bewusst ersetzt werden (z. B. `ReentrantReadWriteLock`, `synchronized`, atomare Strukturen).
+Ein `ConcurrentHashMap` ersetzt die Schreib‑Semantik eines `@Lock(WRITE)` nicht.
+====
+
+[NOTE]
+====
+@Startup wird automatisch migriert
+
+Die Migration transformiert `@Startup` + `@PostConstruct` automatisch zu `@EventListener(ApplicationReadyEvent.class)`.
+Dies entspricht der EJB-Spezifikation (4.8.1): „the container must initialize the singleton session bean instance during the application startup sequence [...] before any external client requests are delivered."
+
+Für manuelle Migration stehen weitere Spring-Mechanismen zur Verfügung:
+
+* Einfache Initialisierung ohne Startup-Garantie: `@PostConstruct`
+* Startlogik ohne Transaktion: `ApplicationRunner`
+* Startlogik mit Transaktion: `@EventListener(ApplicationReadyEvent.class)` + `@Transactional`
+====
+
+[NOTE]
+====
+@DependsOn wird automatisch migriert
+
+`@DependsOn` aus `jakarta.ejb` wird zu `@DependsOn` aus `org.springframework.context.annotation` transformiert.
+Die Semantik bleibt identisch: Steuerung der Initialisierungsreihenfolge zwischen Beans.
+====
+
+=== @Stateful -> Explizite Zustands-Architektur
+
+`@Stateful` modelliert fachliche Gesprächszustände (z. B. Angebotsentwurf, Schadensfall-Bearbeitung, Warenkorb).
+Der Container kann passivieren/aktivieren und mit `@Remove` eine Konversation beenden.
+Diese Lifecycle-Callbacks (`@PrePassivate`, `@PostActivate`) haben in Spring kein direktes Gegenstück.
+Der Zustand muss bewusst neu modelliert werden.
+
+Die Zielabbildung hängt am Client-Kontext. HTTP-basierte Aufrufe können über Session- oder Request-Scopes modelliert werden. Remote-Clients, Messaging oder Batch-Trigger haben keine HTTP-Session und benötigen andere Formen des Zustandsmanagements.
+
+Transaktionsgrenzen und Ressourcenbindung müssen explizit geprüft werden. EJB-Transaktionen sind methodenbezogen; Konversationszustand darf nicht auf offene Ressourcen angewiesen sein. Wenn Zustand außerhalb der JVM gespeichert wird, muss er serialisierbar und von Infrastrukturressourcen getrennt sein.
+
+Die Migration ist daher eine Architekturentscheidung.
+Zwei typische Alternativen sind:
+
+.Beispiel: Option A (Session-Scoped Bean)
+[source,java]
+----
+import org.springframework.stereotype.Component;
+import org.springframework.web.context.annotation.SessionScope;
+
+@Component
+@SessionScope
+public class QuoteDraft {
+
+    private List<QuoteLine> lines = new ArrayList<>();
+
+    public void addLine(QuoteLine line) {
+        lines.add(line);
+    }
+
+    public Quote finalizeQuote() {
+        return new Quote(lines);
+    }
+}
+----
+
+.Beispiel: Option B (Persistenter Entwurf)
+[source,java]
+----
+import org.springframework.stereotype.Service;
+
+@Service
+public class QuoteDraftService {
+
+    private final QuoteDraftRepository repository;
+
+    public QuoteDraftService(QuoteDraftRepository repository) {
+        this.repository = repository;
+    }
+
+    public DraftId startDraft(CustomerId customerId) {
+        QuoteDraft draft = QuoteDraft.start(customerId);
+        return repository.save(draft);
+    }
+
+    public void addLine(DraftId draftId, QuoteLine line) {
+        QuoteDraft draft = repository.load(draftId);
+        draft.addLine(line);
+        repository.save(draft);
+    }
+
+    public Quote finalizeDraft(DraftId draftId) {
+        QuoteDraft draft = repository.load(draftId);
+        Quote quote = draft.finalizeQuote();
+        repository.delete(draftId);
+        return quote;
+    }
+}
+----
+
+[IMPORTANT]
+====
+Architekturentscheidung erforderlich:
+
+[cols="1,2,2"]
+|===
+| Option | Vorteile | Nachteile
+
+| `@SessionScope`
+| Nahe an EJB-Konversation
+| Nur sinnvoll bei Web-Session, Skalierung eingeschränkt
+
+| Persistenter Entwurf
+| Robust, clusterfähig, auditierbar
+| Mehr Modellierung/Repository-Logik
+
+| Stateless + expliziter Zustandstransfer
+| Klar, testbar, skalierbar
+| Mehr Datenfluss über API
+|===
+====
+
+[WARNING]
+====
+Kritische Punkte bei @Stateful-Migration
+
+1. `@Remove` muss explizit ersetzt werden (z. B. Löschen/Abschluss des Entwurfs).
+2. `@PrePassivate`/`@PostActivate` entsprechen Serialisierung/Deserialisierung – in Spring gibt es keine direkte Entsprechung.
+3. Serialisierung ist nur dann Pflicht, wenn der Zustand extern abgelegt oder repliziert wird.
+4. `@StatefulTimeout` beschreibt Idle-Zeiten der Bean-Instanz, nicht HTTP-Session-Timeout.
+5. Der Client-Kontext bestimmt die Zielabbildung; HTTP-Session-Scopes sind für Remote- oder Batch-Clients ungeeignet.
+====
+
+=== Automatisierte Migration
+
+[cols="1,3"]
+|===
+| Name | `de.example.rewrite.ejb.MigrateStatelessToService`
+| Beschreibung | Transformiert `@Stateless` zu `@Service`. Entfernt `@LocalBean`.
+| Konfiguration | keine
+|===
+
+[cols="1,3"]
+|===
+| Name | `de.example.rewrite.ejb.MigrateSingletonToService`
+| Beschreibung | Transformiert `@Singleton` zu `@Service`. Transformiert `@Startup` + `@PostConstruct` zu `@EventListener(ApplicationReadyEvent.class)`. Transformiert `@DependsOn` von `jakarta.ejb` zu `org.springframework.context.annotation`. Entfernt `@Lock` und `@ConcurrencyManagement` mit `@NeedsReview`-Markierung für explizites Locking.
+| Konfiguration | keine
+|===
+
+[cols="1,3"]
+|===
+| Name | `de.example.rewrite.ejb.MigrateSessionBeans`
+| Beschreibung | Kombiniert `MigrateStatelessToService` und `MigrateSingletonToService`.
+| Konfiguration | keine
+|===
+
+---

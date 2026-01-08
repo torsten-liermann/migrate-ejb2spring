@@ -1,0 +1,57 @@
+== OpenRewrite Bestandsaufnahme und Migrationslücken
+
+Dieses Kapitel dokumentiert die Analyse der vorhandenen Rezepte im Kontext der Cargo-Tracker-Referenzanwendung auf Jakarta EE 10. Die Tests wurden mit einem eigenen `rewrite.yml` durchgeführt, das Jakarta-Namespace-Umstellungen berücksichtigt. Die Ergebnisse dienen als Grundlage für Priorisierung und Lückenbewertung.
+
+=== Zusammenfassung der Migration (Stand: Januar 2026, M7 abgeschlossen)
+
+Die Migration im Worktree erzeugt 91 geänderte Dateien und einen Patch von rund 4.100 Zeilen. Der Quellcode lässt sich kompilieren. Review‑Markierungen werden je Modul in `MIGRATION-REVIEW.md` gesammelt, aktuell 23 Items (7 Konfiguration, 16 Review‑Kategorien).
+
+=== Erfasste Transformationen
+
+Die Rezepte decken zentrale EJB- und CDI-Patterns ab, darunter `@Stateless` nach `@Service`, CDI-Injektionen, JAX-RS-Ressourcen sowie Transaktions- und Event-Mappings. Die Mengen variieren je nach Modul, sind aber in Cargo Tracker mehrfach vertreten (beispielsweise 8 `@Stateless`-Services, 96 Injektionen und 5 JAX-RS-Pfade).
+
+=== Review‑Markierungen
+
+Folgende Bereiche werden durch Rezepte erkannt und mit `@NeedsReview` gekennzeichnet:
+
+* JSF‑UI‑Logik
+* Jakarta‑Batch‑Jobs
+* WebSocket‑Endpunkte
+* JNDI‑Lookups für Ressourcen und Konfiguration
+
+Diese Markierungen werden im Report zusammengeführt und dienen als strukturierte Prüfliste.
+
+=== Beispiel: erfolgreiche Migration einer REST-Ressource
+
+.Beispiel: VORHER (EJB)
+[source,java]
+----
+@Stateless
+@Path("/graph-traversal")
+public class GraphTraversalService {
+    @Inject private GraphDao dao;
+
+    @GET
+    @Path("/shortest-path")
+    public List<TransitPath> findShortestPath(
+            @QueryParam("origin") String origin,
+            @QueryParam("destination") String dest) { ... }
+}
+----
+
+.Beispiel: NACHHER (Spring Boot)
+[source,java]
+----
+@Service
+@RequestMapping("/graph-traversal")
+public class GraphTraversalService {
+    @Autowired
+    private GraphDao dao;
+
+    @GetMapping
+    @RequestMapping("/shortest-path")
+    public List<TransitPath> findShortestPath(
+            @RequestParam("origin") String origin,
+            @RequestParam("destination") String dest) { ... }
+}
+----

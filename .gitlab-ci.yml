@@ -1,0 +1,7 @@
+include:
+  - project: 'b6/t622/km-zentral/gitlab-ci-library'
+    ref: 'main'
+    file: '/maven/maven-complete-pipeline.yml'
+
+variables:
+  JAVA_VERSION: "17"

@@ -1,0 +1,101 @@
+== Interceptors
+
+EJB-Interceptors sind Teil des Container-Modells und bieten deklarative Querschnittsfunktionen wie Logging, Auditing oder Sicherheitsprüfungen. In Spring übernimmt diese Rolle primär Spring AOP, das per Proxy arbeitet und Pointcuts über Annotationen oder Signaturen definiert. Für die Migration ist entscheidend, welche Join-Points tatsächlich erreicht werden und wie die Aufrufreihenfolge zu EJB-Interceptor-Ketten abgebildet wird.
+
+=== @Interceptors und @AroundInvoke
+
+.Beispiel: VORHER (EJB)
+[source,java]
+----
+import javax.interceptor.Interceptor;
+import javax.interceptor.AroundInvoke;
+import javax.interceptor.InvocationContext;
+import javax.interceptor.Interceptors;
+
+@Interceptor
+public class AuditInterceptor {
+
+    @AroundInvoke
+    public Object audit(InvocationContext ctx) throws Exception {
+        AuditEntry entry = AuditEntry.start(ctx.getMethod().getName());
+        try {
+            return ctx.proceed();
+        } finally {
+            entry.finish();
+        }
+    }
+}
+
+@Stateless
+@Interceptors(AuditInterceptor.class)
+public class TariffCalculationService {
+
+    public Money calculateTariff(Shipment shipment) {
+        return compute(shipment);
+    }
+}
+----
+
+.Beispiel: NACHHER (Spring Boot)
+[source,java]
+----
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.springframework.stereotype.Component;
+
+@Aspect
+@Component
+public class AuditAspect {
+
+    @Around("@within(org.springframework.stereotype.Service)")
+    public Object audit(ProceedingJoinPoint joinPoint) throws Throwable {
+        AuditEntry entry = AuditEntry.start(joinPoint.getSignature().getName());
+        try {
+            return joinPoint.proceed();
+        } finally {
+            entry.finish();
+        }
+    }
+}
+----
+
+Spring AOP arbeitet proxybasiert und greift nur bei externen Aufrufen über den Proxy. Selbstaufrufe innerhalb einer Klasse werden nicht abgefangen. EJB-Interceptors werden hingegen durch den Container für jeden Interceptor-gebundenen Aufruf angewendet. Bei Migrationen mit internen Aufrufketten muss das berücksichtigt werden.
+
+=== Interceptor-Bindings aus CDI
+
+CDI nutzt `@InterceptorBinding`, um Interceptors über eine eigene Annotation zu binden. In Spring wird dies üblicherweise durch eine eigene Annotation und ein `@Aspect` abgebildet, das auf die Annotation als Pointcut reagiert.
+
+.Beispiel: VORHER (CDI)
+[source,java]
+----
+import javax.interceptor.InterceptorBinding;
+import java.lang.annotation.*;
+
+@InterceptorBinding
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.METHOD, ElementType.TYPE})
+public @interface Audited { }
+----
+
+.Beispiel: NACHHER (Spring Boot)
+[source,java]
+----
+import java.lang.annotation.*;
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.METHOD, ElementType.TYPE})
+public @interface Audited { }
+
+@Aspect
+@Component
+public class AuditedAspect {
+
+    @Around("@annotation(Audited) || @within(Audited)")
+    public Object audit(ProceedingJoinPoint joinPoint) throws Throwable {
+        return joinPoint.proceed();
+    }
+}
+----
+
+Die Reihenfolge mehrerer Interceptors wird in EJB durch Prioritäten und `@Interceptors`-Reihenfolge bestimmt. In Spring kann die Reihenfolge mit `@Order` oder `Ordered` kontrolliert werden.

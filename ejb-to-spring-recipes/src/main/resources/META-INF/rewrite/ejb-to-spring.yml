@@ -1,0 +1,449 @@
+#
+# OpenRewrite Recipe for migrating EJB applications to Spring Boot
+#
+# Usage:
+#   mvn rewrite:run -Drewrite.activeRecipes=com.github.rewrite.ejb.MigrateEjbToSpring
+#
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.MigrateEjbToSpring
+displayName: Migrate EJB to Spring Boot
+description: >-
+  Comprehensive recipe to migrate Java EE/Jakarta EE EJB-based applications to Spring Boot.
+  Handles session beans, message-driven beans, dependency injection, and transactions.
+tags:
+  - ejb
+  - spring
+  - migration
+  - java-ee
+recipeList:
+  # Generate @NeedsReview annotation class (must run first)
+  - com.github.rewrite.ejb.AddNeedsReviewAnnotation
+
+  # Maven POM Migration (adds Spring Boot dependencies based on detected features)
+  - com.github.rewrite.ejb.AddSpringBootDependencies
+
+  # Migrate POM packaging from "ejb" to "jar" for Spring Boot
+  - com.github.rewrite.ejb.MigrateEjbPackaging
+
+  # CDI Scopes Migration
+  # Migrate CDI scope annotations to Spring equivalents
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.enterprise.context.RequestScoped
+      newFullyQualifiedTypeName: org.springframework.web.context.annotation.RequestScope
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: jakarta.enterprise.context.SessionScoped
+      newFullyQualifiedTypeName: org.springframework.web.context.annotation.SessionScope
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: javax.enterprise.context.RequestScoped
+      newFullyQualifiedTypeName: org.springframework.web.context.annotation.RequestScope
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: javax.enterprise.context.SessionScoped
+      newFullyQualifiedTypeName: org.springframework.web.context.annotation.SessionScope
+
+  # Replace maven-ejb-plugin with spring-boot-maven-plugin
+  - com.github.rewrite.ejb.MigrateBuildPlugins
+
+  # Remove WildFly build plugins and profiles (WFQ-002)
+  # Only runs if spring-boot-maven-plugin is present (migration completed)
+  - com.github.rewrite.ejb.RemoveWildFlyPlugins
+
+  # Convert EAR modules to POM aggregators (EAR not used in Spring Boot)
+  - com.github.rewrite.ejb.MigrateEarToAggregator
+
+  # Add migration-annotations dependency (provides @NeedsReview, @EjbSchedule, etc.)
+  # Must run after marker annotations are added but is a dependency recipe
+  - com.github.rewrite.ejb.AddMigrationAnnotationsDependency
+
+  # Session Bean Migration
+  - com.github.rewrite.ejb.MigrateStatelessToService
+  - com.github.rewrite.ejb.MigrateSingletonToService
+  - com.github.rewrite.ejb.MigrateStatefulBean
+
+  # Concurrency (@AccessTimeout -> @NeedsReview with ReentrantLock/Semaphore guidance)
+  - com.github.rewrite.ejb.MigrateAccessTimeoutToMarker
+
+  # Dependency Injection
+  - com.github.rewrite.ejb.ConvertEjbBeanNameToQualifier
+  - com.github.rewrite.ejb.ConvertEjbBeanInterfaceToAutowired
+  - com.github.rewrite.ejb.MigrateEjbToAutowired
+  - com.github.rewrite.ejb.MigrateInjectToAutowired
+  - com.github.rewrite.ejb.MigrateResourceLookupToAutowired
+
+  # CDI @Named to Spring @Component/@Qualifier
+  # Strategy: migrate-to-spring (from project.yaml migration.inject.strategy, default: keep-jsr330)
+  # If keep-jsr330 (default): keeps @Named/@Inject, adds jakarta.inject-api dependency
+  # If migrate-to-spring: migrates @Named to @Component/@Qualifier
+  - com.github.rewrite.ejb.MigrateNamedToComponent
+
+  # CDI Custom Qualifiers on injection points -> Spring @Qualifier
+  # Converts @MyQualifier to @Qualifier("myQualifier") on fields/parameters
+  - com.github.rewrite.ejb.MigrateCdiQualifierToSpringQualifier
+
+  # CDI @Produces with InjectionPoint -> Spring InjectionPoint
+  - com.github.rewrite.ejb.MigrateCdiProducerToSpringBean
+
+  # CDI Events
+  - com.github.rewrite.ejb.MigrateCdiEventsToSpring
+  # Event qualifiers require wrapper event classes (marks for manual review)
+  - com.github.rewrite.ejb.MarkCdiQualifiersForReview
+
+  # JSR-330 Support (for keep-jsr330 strategy, which is default)
+  # Adds jakarta.inject-api dependency when @Named/@Inject are detected
+  - com.github.rewrite.ejb.AddJakartaInjectDependency
+
+  # Message-Driven Beans
+  - com.github.rewrite.ejb.MigrateMessageDrivenToJmsListener
+  - com.github.rewrite.ejb.MigrateJmsContextToJmsTemplate
+
+  # JMS Configuration (handles JNDI lookups for JMS resources)
+  - com.github.rewrite.ejb.MigrateJmsConnectionFactory
+  - com.github.rewrite.ejb.MigrateJmsDestination
+  - com.github.rewrite.ejb.MigrateJndiStringToValue
+  - com.github.rewrite.ejb.MarkJmsContextForReview
+
+  # Scheduling
+  - com.github.rewrite.ejb.ResolveTimerStrategy
+  - com.github.rewrite.ejb.MigrateScheduleToScheduled
+  - com.github.rewrite.ejb.MigrateScheduleToTaskScheduler
+  - com.github.rewrite.ejb.MigrateScheduleToQuartz
+  - com.github.rewrite.ejb.MigrateEjbProgrammaticTimers
+  - com.github.rewrite.ejb.MigrateTimerServiceToQuartz
+
+  # Transactions (handles both jakarta.ejb and javax.ejb namespaces)
+  - com.github.rewrite.ejb.MigrateTransactionAttributeJakarta
+  - com.github.rewrite.ejb.ConvertJBossTransactionTimeout
+  # MKR-005: Migrate @ApplicationException rollback semantics to @Transactional
+  - com.github.rewrite.ejb.MigrateApplicationExceptionRollback
+
+  # Async Processing
+  - com.github.rewrite.ejb.MigrateAsynchronousToAsync
+  - com.github.rewrite.ejb.MigrateAsyncResultToCompletableFuture
+
+  # Persistence Configuration
+  - com.github.rewrite.ejb.MigratePersistenceXmlToProperties
+
+  # Class-level EJB metadata
+  - com.github.rewrite.ejb.RemoveClassLevelEjbAnnotation
+
+  # Interface Annotations
+  - com.github.rewrite.ejb.RemoveLocalAnnotation
+  # Remote Interface Migration (strategy-based via project.yaml migration.remote.strategy)
+  # - rest (default): Generates REST controllers + HttpExchange clients
+  # - manual: Adds @NeedsReview markers for manual migration
+  - com.github.rewrite.ejb.MigrateRemoteInterfaces
+  - com.github.rewrite.ejb.RemoveJndiNameConstants
+
+  # JNDI Constant Cleanup (JUS-003 + JUS-004)
+  # JUS-004 removes name attribute from @Stateless/@Singleton/@Stateful (e.g., @Stateless(name = IFoo.JNDI_NAME))
+  # JUS-003 then removes the now-unused JNDI_NAME/JNDI_LOCAL_NAME constants from interfaces
+  # ORDER MATTERS: JUS-004 must run before JUS-003 so constants become unused
+  - com.github.rewrite.ejb.RemoveStatelessNameAttribute
+  - com.github.rewrite.ejb.RemoveJndiNameConstants
+
+  # JBoss-specific Annotations (JUS-001)
+  - com.github.rewrite.ejb.RemoveJBossSecurityDomain
+
+  # JBoss-specific XML Descriptors (GAP-DESC-001)
+  # Parse jboss-ejb3.xml for delivery-active=false and clustered-singleton=true
+  - com.github.rewrite.ejb.MarkJbossEjb3XmlForMigration
+
+  # EJB Interceptors to Spring AOP (MKR-001, GAP-INT-001/002, JUS-005)
+  # 1. Transform interceptor implementation classes to @Aspect/@Component
+  - com.github.rewrite.ejb.MigrateEjbInterceptorsToAop
+  # 2. Generate pointcuts from ejb-jar.xml interceptor-bindings
+  - com.github.rewrite.ejb.MigrateEjbJarInterceptorsToAop
+  # 3. Remove @Interceptors annotations from target beans (must run after skeleton generation)
+  - com.github.rewrite.ejb.RemoveInterceptorsWithAopMarker
+
+  # Generate Spring Boot Application class with @SpringBootApplication
+  - com.github.rewrite.ejb.AddSpringBootApplication
+
+  # Enable JMS and Scheduling (must run after MigrateMessageDrivenToJmsListener and MigrateScheduleToScheduled)
+  - com.github.rewrite.ejb.AddEnableJmsAndScheduling
+
+  # Enable matrix variables when @MatrixVariable is used
+  - com.github.rewrite.ejb.AddMatrixVariableConfiguration
+
+  # Map remaining EJB annotations to no-op markers (must run after specific migrations)
+  # Handles: @Stateful, @Remove, @Schedule with Timer, @Timeout, etc.
+  - com.github.rewrite.ejb.MapEjbAnnotationsToMarkers
+
+  # Mark APIs that require manual migration
+  - com.github.rewrite.ejb.MarkJakartaBatchForMigration
+  # Generate Spring Batch config stubs from JSL job XML (runs after marking batch classes)
+  - com.github.rewrite.ejb.GenerateSpringBatchConfigFromJsl
+  - com.github.rewrite.ejb.MarkJsfForMigration
+  # MKR-004: Generate ServerEndpointExporter config for JSR-356 WebSocket endpoints (Keep Mode)
+  - com.github.rewrite.ejb.MigrateWebSocketToSpringConfig
+  - com.github.rewrite.ejb.MarkArquillianTestsForMigration
+  - com.github.rewrite.ejb.MarkEjbTimerServiceForReview
+
+  # Migrate Timer API to compile-time stubs (must run AFTER MarkEjbTimerServiceForReview)
+  # Changes jakarta.ejb.Timer/TimerService/etc. to com.github.migration.timer.* stub types
+  # This allows code to compile while marked for manual review
+  - com.github.rewrite.ejb.MigrateTimerApiToStubs
+
+  # JAX-RS Server Migration (strategy-controlled via project.yaml)
+  - com.github.rewrite.ejb.MigrateJaxRsAnnotations
+  - com.github.rewrite.ejb.MigrateJaxRsParameterAnnotations
+  - com.github.rewrite.ejb.MigrateJaxRsResponseToResponseEntity
+
+  # JAX-RS Client Migration
+  # Adds JAX-RS Client Runtime (Jersey) for Spring Boot compatibility.
+  # Without a provider, jakarta.ws.rs.client.ClientBuilder fails at runtime.
+  # Options: provider=jersey (default), resteasy, cxf
+  - com.github.rewrite.ejb.MigrateJaxRsClient
+
+  # Test Stub Migration to @TestConfiguration
+  # Removes @Component/@Service/@Repository from test stubs (Stub/Mock/Fake) in src/test/java
+  # and generates @TestConfiguration class with @Bean methods
+  # to prevent bean ambiguity when running with test classpath (spring-boot:test-run)
+  - com.github.rewrite.ejb.MigrateTestStubsToTestConfiguration
+
+  # Test Migration (Arquillian → Spring Boot Test)
+  - com.github.rewrite.ejb.MigrateArquillianToSpringBootTest
+
+  # Add spring-boot-starter-test dependency when @SpringBootTest is used
+  - com.github.rewrite.ejb.AddSpringBootTestDependency
+
+  # EJBException Migration (must run after other EJB migrations)
+  # Converts EJBException to RuntimeException and rewrites getCausedByException() to getCause()
+  - com.github.rewrite.ejb.MigrateEjbException
+
+  # Remove obsolete Jakarta EE dependencies (replaced by Spring Boot starters)
+  - com.github.rewrite.ejb.RemoveObsoleteJakartaDependencies
+
+  # Safety gate: prevent MANUAL_MIGRATION beans from loading by default
+  - com.github.rewrite.ejb.AddProfileToManualMigrationClasses
+
+  # Generate Migration Report (must run last)
+  - com.github.rewrite.ejb.GenerateMigrationReport
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.GenerateRemoteEjbStubs
+displayName: Generate Remote EJB stubs (REST/gRPC)
+description: >-
+  Generates placeholder REST or gRPC stubs for @Remote EJBs to kick-start
+  remote migration planning.
+tags:
+  - ejb
+  - remote
+  - migration
+recipeList:
+  - com.github.rewrite.ejb.GenerateRemoteEjbStubs
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.GenerateSpringBatchConfigFromJsl
+displayName: Generate Spring Batch config from JSL
+description: >-
+  Generates Spring Batch configuration stubs from Jakarta Batch JSL job XML
+  definitions (Job/Step skeletons for manual completion).
+tags:
+  - batch
+  - migration
+  - spring
+recipeList:
+  - com.github.rewrite.ejb.GenerateSpringBatchConfigFromJsl
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.MigrateSessionBeans
+displayName: Migrate EJB Session Beans
+description: >-
+  Migrates @Stateless and @Singleton EJBs to Spring @Service components.
+tags:
+  - ejb
+  - spring
+  - session-beans
+recipeList:
+  - com.github.rewrite.ejb.MigrateStatelessToService
+  - com.github.rewrite.ejb.MigrateSingletonToService
+  - com.github.rewrite.ejb.MigrateAccessTimeoutToMarker
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.MigrateDependencyInjection
+displayName: Migrate EJB Dependency Injection
+description: >-
+  Converts @EJB, @Inject, and @Named annotations to Spring @Autowired, @Component, and @Qualifier.
+  For @Named/@Inject, behavior depends on project.yaml migration.inject.strategy (default: keep-jsr330):
+  - keep-jsr330: keeps JSR-330 annotations, adds jakarta.inject-api dependency
+  - migrate-to-spring: migrates @Named to @Component/@Qualifier
+tags:
+  - ejb
+  - spring
+  - dependency-injection
+recipeList:
+  - com.github.rewrite.ejb.MigrateEjbToAutowired
+  - com.github.rewrite.ejb.MigrateInjectToAutowired
+  - com.github.rewrite.ejb.MigrateNamedToComponent
+  - com.github.rewrite.ejb.AddJakartaInjectDependency
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.MigrateTransactions
+displayName: Migrate EJB Transactions
+description: >-
+  Converts EJB @TransactionAttribute to Spring @Transactional with appropriate propagation settings.
+  Handles both jakarta.ejb and javax.ejb namespaces.
+  Also migrates @ApplicationException rollback semantics to @Transactional rollbackFor/noRollbackFor.
+tags:
+  - ejb
+  - spring
+  - transactions
+recipeList:
+  - com.github.rewrite.ejb.MigrateTransactionAttributeJakarta
+  - com.github.rewrite.ejb.MigrateApplicationExceptionRollback
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.MigrateMessaging
+displayName: Migrate EJB Message-Driven Beans
+description: >-
+  Converts @MessageDriven EJBs to Spring JMS listeners and adds @EnableJms.
+tags:
+  - ejb
+  - spring
+  - jms
+  - messaging
+recipeList:
+  - com.github.rewrite.ejb.MigrateMessageDrivenToJmsListener
+  - com.github.rewrite.ejb.AddEnableJmsAndScheduling
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.MigrateScheduling
+displayName: Migrate EJB Scheduling
+description: >-
+  Converts EJB @Schedule annotations to Spring @Scheduled with cron expressions and adds @EnableScheduling.
+tags:
+  - ejb
+  - spring
+  - scheduling
+  - timer
+recipeList:
+  - com.github.rewrite.ejb.MigrateScheduleToScheduled
+  - com.github.rewrite.ejb.MigrateEjbProgrammaticTimers
+  - com.github.rewrite.ejb.AddEnableJmsAndScheduling
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.MigrateAsync
+displayName: Migrate EJB Async Processing
+description: >-
+  Converts EJB @Asynchronous annotation to Spring @Async, AsyncResult to CompletableFuture,
+  and adds @EnableAsync to configuration classes.
+tags:
+  - ejb
+  - spring
+  - async
+  - concurrency
+recipeList:
+  - com.github.rewrite.ejb.MigrateAsynchronousToAsync
+  - com.github.rewrite.ejb.MigrateAsyncResultToCompletableFuture
+  - com.github.rewrite.ejb.AddEnableJmsAndScheduling
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.MigratePersistence
+displayName: Migrate JPA Persistence Configuration
+description: >-
+  Migrates persistence.xml configuration to Spring Boot application.properties.
+  Extracts JPA properties, datasource JNDI references, and Hibernate settings.
+tags:
+  - jpa
+  - spring
+  - persistence
+  - configuration
+recipeList:
+  - com.github.rewrite.ejb.MigratePersistenceXmlToProperties
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.MigrateMavenDependencies
+displayName: Migrate Maven POM to Spring Boot
+description: >-
+  Adds Spring Boot dependencies to Maven POMs based on detected EJB/Jakarta EE features.
+  Adds spring-boot-dependencies BOM to parent pom.xml dependencyManagement,
+  spring-boot.version property, and appropriate starters (spring-boot-starter,
+  spring-boot-starter-artemis, spring-boot-starter-data-jpa, spring-boot-starter-web)
+  based on feature detection.
+tags:
+  - maven
+  - spring-boot
+  - dependencies
+  - pom
+recipeList:
+  - com.github.rewrite.ejb.AddSpringBootDependencies
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.RemoveObsoleteJakartaDependencies
+displayName: Remove obsolete Jakarta EE dependencies
+description: >-
+  Removes EJB-specific Jakarta EE dependencies that are no longer needed after migration to Spring Boot.
+  EJB-API removal is conditional: if EJB Timer types (Timer, TimerService, TimerConfig, TimerHandle,
+  ScheduleExpression, TimedObject) remain in the code, the EJB-API dependency is kept.
+  Only removes CDI API unconditionally; keeps persistence-api, validation-api, servlet-api, and umbrella
+  dependencies (jakartaee-api) which may still be required for JAX-RS, JSF, or other Jakarta APIs.
+tags:
+  - ejb
+  - spring
+  - maven
+  - cleanup
+recipeList:
+  # EJB API - conditionally removed (WFQ-004)
+  # Only removes if no Timer types remain in the codebase
+  - com.github.rewrite.ejb.ConditionalRemoveEjbApiDependency
+  # CDI API - replaced by Spring DI
+  - org.openrewrite.maven.RemoveDependency:
+      groupId: jakarta.enterprise
+      artifactId: jakarta.enterprise.cdi-api
+  # NOTE: jakarta.platform:jakartaee-api and jakartaee-web-api are NOT removed here
+  # because they contain multiple APIs (JAX-RS, JSF, etc.) that may still be in use.
+  # Remove these manually only after verifying all Jakarta APIs are migrated.
+  # Old javax.* equivalents (pre-Jakarta rename)
+  # NOTE: javax.ejb-api is also handled by ConditionalRemoveEjbApiDependency
+  - org.openrewrite.maven.RemoveDependency:
+      groupId: javax.enterprise
+      artifactId: cdi-api
+  # Note: jakarta.persistence-api, jakarta.validation-api, jakarta.servlet-api are NOT removed
+  # as they are still required by Spring Boot (transitively or directly)
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.MigrateRemote
+displayName: Migrate @Remote EJB Interfaces
+description: >-
+  Migrates @Remote EJB interfaces to REST/HTTP based on project.yaml configuration.
+  With 'rest' strategy (default), generates REST controllers and HttpExchange clients.
+  With 'manual' strategy, adds @NeedsReview markers for manual migration.
+  Configure strategy in project.yaml: migration.remote.strategy: rest | manual
+tags:
+  - ejb
+  - spring
+  - remote
+  - rest
+recipeList:
+  - com.github.rewrite.ejb.MigrateRemoteInterfaces
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.RemoveWildFlyPluginsRecipe
+displayName: Remove WildFly build plugins
+description: >-
+  Removes WildFly-specific build plugins and profiles after Spring Boot migration.
+  Removes wildfly-maven-plugin from build/plugins, pluginManagement, and profiles.
+  Only applies when spring-boot-maven-plugin is present (migration completed).
+  Also removes WildFly-only profiles and unused version properties.
+tags:
+  - ejb
+  - spring
+  - maven
+  - wildfly
+  - cleanup
+recipeList:
+  - com.github.rewrite.ejb.RemoveWildFlyPlugins

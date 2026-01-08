@@ -1,0 +1,17 @@
+== Migrationsstrategien
+
+Es gibt keinen universellen Weg von EJB nach Spring Boot. Die geeignete Strategie hängt von der Systemgröße, der Betriebsumgebung und der Änderungsrate ab. Dieses Kapitel beschreibt typische Vorgehensweisen und deren Auswirkungen.
+
+=== Big-Bang-Migration
+
+Eine vollständige Umstellung in einem Schritt kann sinnvoll sein, wenn die Anwendung stabil ist, die Fachdomäne gut verstanden wird und Testabdeckung vorhanden ist. Das Risiko liegt in einem großen, schwer zu isolierenden Fehlerraum.
+
+=== Strangler-Ansatz
+
+Ein inkrementeller Ansatz ersetzt EJB-Komponenten schrittweise durch Spring-Services. Dafür sind klare Schnittstellen erforderlich, etwa über REST oder Messaging. Dieser Ansatz reduziert Risiko, erfordert jedoch eine Übergangsarchitektur.
+
+=== Modulweise Migration
+
+Bei modularen Anwendungen kann die Migration pro Modul erfolgen, z. B. zuerst technische Infrastruktur, danach fachliche Services. Das erfordert klare Abgrenzungen der Datenhaltung und definierte Schnittstellen.
+
+Eine erfolgreiche Migration kombiniert häufig mehrere Strategien. Entscheidend ist eine belastbare Teststrategie und eine klare Governance für Architekturentscheidungen.

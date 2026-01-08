@@ -1,0 +1,9 @@
+== Vertiefung
+
+Dieses Kapitel richtet sich an Teams, die die Migration nicht nur technisch, sondern auch architektonisch nachvollziehen wollen. Im Vordergrund stehen die Unterschiede der Programmiermodelle, nicht die Syntax der Annotationen.
+
+EJB setzt auf containerverwaltete Dienste: Transaktionen, Sicherheit, Concurrency und Remoting sind Teil des Laufzeitmodells. Spring Boot liefert ähnliche Funktionen über eine Kombination aus DI, AOP und Konfiguration, die expliziter gesteuert werden muss. Dadurch verlagert sich die Verantwortung für Konsistenz und Betriebsverhalten stärker in die Anwendung und ihre Konfiguration.
+
+Ein typischer Deep-Dive betrifft die Service-Schicht. In EJB sind Services oft stark an den Container gebunden, etwa durch `@Startup`, `@Lock`, `@RunAs` oder JNDI-Lookups. In Spring muss jede dieser Aufgaben einzeln bewertet werden: `@Startup` erfordert ein Start-Event, `@Lock` erfordert Synchronisation, `@RunAs` erfordert eine bewusste Sicherheitskonfiguration, und JNDI wird zu Property-Binding. Diese Zerlegung macht die Logik nachvollziehbar, aber nur, wenn die fachlichen Anforderungen dokumentiert sind.
+
+Ein zweiter Deep-Dive betrifft asynchrone Verarbeitung. In EJB sind `@Asynchronous`, `@MessageDriven` und `TimerService` integrale Teile des Containers. In Spring sind dies getrennte Bausteine mit eigener Konfiguration. Das beeinflusst Threading, Fehlerbehandlung und Monitoring. Eine Migration ohne diese Betrachtung führt zu scheinbar funktionierendem Code, der im Betrieb unerwartete Latenzen oder fehlerhafte Zustände erzeugt.

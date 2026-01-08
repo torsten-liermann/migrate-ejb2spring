@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.github.rewrite</groupId>
+    <artifactId>migrate</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>EJB to Spring Migration Runner</name>
+    <description>Executes EJB to Spring migration locally (mirrors .gitlab-ci.yml)</description>
+
+    <properties>
+        <!-- Rewrite versions (same as .gitlab-ci.yml) -->
+        <rewrite.plugin.version>5.48.0</rewrite.plugin.version>
+        <ejb.recipes.version>1.0.0-SNAPSHOT</ejb.recipes.version>
+
+        <exec-maven-plugin.version>3.5.0</exec-maven-plugin.version>
+    </properties>
+
+    <!--
+    =====================================================================
+    Usage:
+      ./mvnw -f migrate validate        (direct)
+      ./mvnw -P migrate validate        (via aggregator profile)
+
+    Runs complete EJB to Spring migration on ejb-demo module:
+      - @Stateless -> @Service
+      - @Singleton -> @Service (removes @Lock, @ConcurrencyManagement, @Startup)
+      - @EJB -> @Autowired
+      - @Inject -> @Autowired
+      - @TransactionAttribute -> @Transactional
+      - @MessageDriven -> @Component + @JmsListener
+      - @Local removal
+      - @Remote -> TODO comment
+
+    Why this module uses exec-maven-plugin (nested Maven invocations):
+      - OpenRewrite modifies sources on disk; running rewrite and then compiling
+        within the same Maven reactor is fragile because earlier lifecycle phases
+        may already have consumed the pre-migration sources.
+      - Spawning a fresh Maven invocation per step mirrors the CI jobs and gives
+        deterministic "rewrite -> verify" feedback.
+    =====================================================================
+    -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${exec-maven-plugin.version}</version>
+                <executions>
+                    <!-- Step 1: Install recipes -->
+                    <execution>
+                        <id>install-recipes</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>./mvnw</executable>
+                            <workingDirectory>${project.basedir}/..</workingDirectory>
+                            <arguments>
+                                <argument>install</argument>
+                                <argument>-pl</argument>
+                                <argument>ejb-to-spring-recipes</argument>
+                                <argument>-DskipTests</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+
+                    <!-- Step 2: Run complete EJB to Spring migration -->
+                    <execution>
+                        <id>migrate-ejb-to-spring</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>./mvnw</executable>
+                            <workingDirectory>${project.basedir}/..</workingDirectory>
+                            <arguments>
+                                <argument>org.openrewrite.maven:rewrite-maven-plugin:${rewrite.plugin.version}:run</argument>
+                                <argument>-Drewrite.recipeArtifactCoordinates=com.github.rewrite:ejb-to-spring-recipes:${ejb.recipes.version}</argument>
+                                <argument>-Drewrite.activeRecipes=com.github.rewrite.ejb.MigrateEjbToSpring</argument>
+                                <argument>-pl</argument>
+                                <argument>ejb-demo</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+
+                    <!-- Step 3: Verify migration compiles -->
+                    <execution>
+                        <id>verify-migration</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>./mvnw</executable>
+                            <workingDirectory>${project.basedir}/..</workingDirectory>
+                            <arguments>
+                                <argument>clean</argument>
+                                <argument>verify</argument>
+                                <argument>-pl</argument>
+                                <argument>ejb-demo</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.github.rewrite</groupId>
+        <artifactId>migrate-ejb2spring</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <groupId>com.github.migration</groupId>
+    <artifactId>migration-annotations</artifactId>
+    <packaging>jar</packaging>
+
+    <name>EJB Migration Marker Annotations</name>
+    <description>Marker annotations for EJB to Spring migration. These annotations mark EJB constructs that could not be automatically migrated and require manual review.</description>
+
+    <!-- No dependencies needed - pure Java annotations -->
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,0 +1,105 @@
+== Concurrency
+
+EJB stellt mit `@Lock`, `@AccessTimeout` und `@ConcurrencyManagement` ein deklaratives Modell für Nebenläufigkeit zur Verfügung, insbesondere für `@Singleton`-Beans. Spring bietet dafür kein direktes Gegenstück. Das bedeutet, dass die Migration explizit entscheiden muss, welche Synchronisationsstrategie erforderlich ist und wie sie technisch umgesetzt wird.
+
+.Spezifikationsreferenzen
+****
+* https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#singleton-session-bean-concurrency[Jakarta EJB 4.0 Spec - §4.8 Singleton Session Bean Concurrency]
+* https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#lock[Jakarta EJB 4.0 Spec - §4.8.5 @Lock]
+* https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#access-timeout[Jakarta EJB 4.0 Spec - §4.8.6 @AccessTimeout]
+* https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#concurrency-management[Jakarta EJB 4.0 Spec - §4.8.7 @ConcurrencyManagement]
+****
+
+=== Singleton-Beans und Locks
+
+In EJB wird eine Singleton-Bean durch den Container vor parallelen Zugriffsproblemen geschützt. Das geschieht über `@Lock(READ)` und `@Lock(WRITE)` sowie optionalen Timeouts. In Spring ist ein `@Service`-Singleton eine normale Java-Instanz; Synchronisation muss explizit umgesetzt werden. Methoden, die in EJB durch Locks geschützt waren, benötigen in Spring eine konkrete Synchronisationsstrategie.
+
+In der Spezifikation gilt `@Lock(WRITE)` als Standard, wenn keine explizite Lock-Annotation gesetzt ist. `@AccessTimeout` definiert die maximale Wartezeit auf ein Lock; ein Wert von `-1` bedeutet unbegrenztes Warten. Bei Timeout wirft der Container `ConcurrentAccessTimeoutException`.
+
+.Beispiel: VORHER (EJB)
+[source,java]
+----
+import javax.ejb.Singleton;
+import javax.ejb.Lock;
+import javax.ejb.LockType;
+import javax.ejb.AccessTimeout;
+import java.util.concurrent.TimeUnit;
+
+@Singleton
+public class ReferenceDataCache {
+
+    @Lock(LockType.READ)
+    public ReferenceData lookup(String code) {
+        return cache.get(code);
+    }
+
+    @Lock(LockType.WRITE)
+    @AccessTimeout(value = 5, unit = TimeUnit.SECONDS)
+    public void refresh() {
+        reload();
+    }
+}
+----
+
+.Beispiel: NACHHER (Spring Boot)
+[source,java]
+----
+import org.springframework.stereotype.Service;
+
+@Service
+public class ReferenceDataCache {
+
+    public synchronized ReferenceData lookup(String code) {
+        return cache.get(code);
+    }
+
+    public synchronized void refresh() {
+        reload();
+    }
+}
+----
+
+Die Wahl der Synchronisation hängt vom Datenmodell ab. Für hohe Parallelität kann ein `ReadWriteLock` sinnvoll sein, für asynchrones Aktualisieren ein `ScheduledExecutorService` oder ein `TaskScheduler`. Ein pauschales Entfernen von `@Lock` ohne Ersatz führt zu funktionalen und Datenkonsistenz-Problemen.
+
+=== Automatische Migration
+
+Die Migration ersetzt `@Lock`-Annotationen durch `synchronized`-Modifikatoren und fügt eine `@NeedsReview`-Annotation hinzu, die auf die semantische Vereinfachung hinweist. Bei `@Lock(READ)` geht die parallele Lesemöglichkeit verloren.
+
+Für Szenarien mit hohem Lesedurchsatz empfiehlt die `@NeedsReview`-Annotation ein Upgrade auf `ReadWriteLock`:
+
+.Empfohlenes ReadWriteLock-Upgrade
+[source,java]
+----
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ReferenceDataCache {
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+
+    public ReferenceData lookup(String code) {
+        lock.readLock().lock();
+        try {
+            return cache.get(code);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public void refresh() {
+        lock.writeLock().lock();
+        try {
+            reload();
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+}
+----
+
+NOTE: `@AccessTimeout` wird bei der Migration erkannt, aber nicht automatisch umgesetzt. Für Timeout-Semantik muss `tryLock(timeout, TimeUnit)` manuell implementiert werden.
+
+=== Bean-Managed Concurrency
+
+`@ConcurrencyManagement(BEAN)` delegiert die Synchronisation vollständig an die Implementierung. In Spring entspricht dies dem Normalfall: die Bean ist selbst verantwortlich für Thread-Sicherheit. Bei der Migration sollte dokumentiert werden, welche Synchronisationslogik bereits vorhanden ist und ob sie weiterhin ausreichend ist.

@@ -1,0 +1,53 @@
+== Context
+
+EJB stellt Kontextobjekte wie `SessionContext`, `EJBContext` oder `MessageDrivenContext` bereit, die Zugriff auf Sicherheitsinformationen, Transaktionen und Ressourcen bieten. In Spring wird vergleichbare Information aus dem SecurityContext, aus dem TransactionManager oder aus der Web-Umgebung abgerufen. Ein direkter Austausch der APIs ist nicht möglich, die fachliche Absicht muss neu modelliert werden.
+
+=== SessionContext und Sicherheit
+
+In EJB wird der aktuelle Benutzer über den `SessionContext` abgefragt. In Spring Security erfolgt dies über `SecurityContextHolder` und das `Authentication`-Objekt.
+
+.Beispiel: VORHER (EJB)
+[source,java]
+----
+import javax.annotation.Resource;
+import javax.ejb.SessionContext;
+import javax.ejb.Stateless;
+
+@Stateless
+public class CustomerService {
+
+    @Resource
+    private SessionContext sessionContext;
+
+    public CustomerProfile profile(CustomerId id) {
+        String user = sessionContext.getCallerPrincipal().getName();
+        return loadProfile(user, id);
+    }
+}
+----
+
+.Beispiel: NACHHER (Spring Boot)
+[source,java]
+----
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+
+@Service
+public class CustomerService {
+
+    public CustomerProfile profile(CustomerId id) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String user = auth.getName();
+        return loadProfile(user, id);
+    }
+}
+----
+
+=== Transaktionen und Rollback
+
+EJB erlaubt den Zugriff auf Transaktionsstatus über den Kontext. In Spring wird dieser Status über `TransactionSynchronizationManager` oder durch Ausnahmebehandlung ausgedrückt. Der Einsatz sollte kritisch geprüft werden, da direkte Kontextabfragen häufig ein Indikator für fehlende fachliche Grenzen sind.
+
+=== Ressourcen und JNDI
+
+`SessionContext.lookup()` und direkte JNDI-Lookups werden in Spring durch Property-Binding ersetzt. Ressourcen werden über `@ConfigurationProperties` oder `@Value` injiziert und im Code nicht mehr direkt über JNDI aufgelöst.

@@ -1,0 +1,41 @@
+== JSON-B
+
+JSON-B ist die Standard-JSON-Bindingspezifikation in Jakarta EE. Spring Boot nutzt standardmäßig Jackson. Beide unterstützen Annotationen für Feldnamen, Null-Werte, Formatierungen und Serialisierungsregeln, unterscheiden sich jedoch in Details und Default-Verhalten.
+
+=== Annotationen und Mapping
+
+JSON-B-Annotationen wie `@JsonbProperty` lassen sich in den meisten Fällen nach `@JsonProperty` übertragen. Besondere Aufmerksamkeit benötigen `@JsonbDateFormat`, `@JsonbTypeAdapter` und Sichtbarkeitsregeln für Properties.
+
+.Beispiel: VORHER (JSON-B)
+[source,java]
+----
+import javax.json.bind.annotation.JsonbProperty;
+import javax.json.bind.annotation.JsonbDateFormat;
+
+public class ShipmentSnapshot {
+
+    @JsonbProperty("tracking_id")
+    private String trackingId;
+
+    @JsonbDateFormat("yyyy-MM-dd")
+    private LocalDate departureDate;
+}
+----
+
+.Beispiel: NACHHER (Jackson)
+[source,java]
+----
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonFormat;
+
+public class ShipmentSnapshot {
+
+    @JsonProperty("tracking_id")
+    private String trackingId;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate departureDate;
+}
+----
+
+Die Migration sollte das tatsächliche JSON-Contract-Verhalten mit Tests absichern, insbesondere wenn Clients auf bestimmte Feldnamen, Datumsmuster oder Null-Wert-Handling angewiesen sind.

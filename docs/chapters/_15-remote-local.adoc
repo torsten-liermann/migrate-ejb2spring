@@ -1,0 +1,423 @@
+== Remote und Local Interfaces
+
+EJB bietet lokale und entfernte Interfaces (`@Local`, `@Remote`) als Teil des Komponentenmodells. Remote-Aufrufe sind containerverwaltet und nutzen standardisierte Protokolle. Spring Boot besitzt kein direktes EJB-Äquivalent. Die Migration erfordert daher eine bewusste Wahl eines Kommunikationsstils (RPC-ähnlich über HTTP, REST-API, gRPC oder andere Frameworks).
+
+=== Lokale Interfaces
+
+Lokale Interfaces werden im gleichen Modul verwendet und können in Spring in der Regel direkt durch Klassenreferenzen ersetzt werden. Eine explizite Interface-Definition ist weiterhin sinnvoll, wenn sie fachliche Grenzen ausdrückt oder Tests erleichtert.
+
+=== Remote Interfaces
+
+Für `@Remote`-Beans existiert in Spring kein entsprechendes Container-Remoting. Die Zielarchitektur muss explizit festlegen, ob Remote-Aufrufe als HTTP-basierte RPC-Calls, REST-APIs, Messaging oder gRPC abgebildet werden. EJB-spezifische Features wie pass-through Security oder deklarative Transaktionen über Remote-Grenzen müssen in Spring explizit modelliert werden.
+
+=== Optionen für @Remote-Alternativen (Stand: 2026-01-23)
+
+Die folgenden Optionen werden als Alternativen zu EJB-Remote betrachtet. Die Metriken stammen aus den jeweiligen GitHub-Repositories (Lizenz, Releases, Contributor-Statistik) und werden mit Zeitstempel dokumentiert.
+
+[NOTE]
+====
+Datenstand: 2026-01-23. „Releases (12M)“ basiert auf GitHub Releases der letzten 12 Monate. „Aktive Committer (52W)“ basiert auf GitHub `stats/contributors`. Wenn GitHub die Statistik nicht liefert, ist der Wert als „n/v“ markiert.
+====
+
+[cols="2,3,1,1,1,1,2"]
+|===
+| Option | GitHub URL | Lizenz | Releases (12M) | Letztes Release | Aktive Committer (52W) | Nähe zu HttpInvoker/IIOP
+
+| Apache Dubbo (Triple)
+| https://github.com/apache/dubbo
+| Apache-2.0
+| 6
+| 2025-11-13
+| n/v (GitHub Stats 202)
+| HttpInvoker-nah (RPC über HTTP), IIOP-fern
+
+| spring-boot-rest-http-invoker
+| https://github.com/jc-lab/spring-boot-rest-http-invoker
+| Apache-2.0
+| 0
+| – (keine GitHub Releases)
+| n/v (GitHub Stats 202)
+| HttpInvoker-nah (RPC über HTTP), IIOP-fern
+
+| spring-rest-invoker
+| https://github.com/ggeorgovassilis/spring-rest-invoker
+| Apache-2.0
+| 0
+| 2017-11-19
+| n/v (GitHub Stats 202)
+| HttpInvoker-nah (RPC über HTTP), IIOP-fern
+
+| Hessian (Fork: floating-clouds)
+| https://github.com/floating-clouds/hessian-spring-boot
+| Apache-2.0
+| 0
+| – (keine GitHub Releases)
+| n/v (GitHub Stats 202)
+| HttpInvoker-nah (RPC über HTTP/Binär), IIOP-fern
+
+| Hessian (Fork: linux-china)
+| https://github.com/linux-china/hessian-spring-boot-starter
+| n/v (Lizenz nicht deklariert)
+| 0
+| – (keine GitHub Releases)
+| n/v (GitHub Stats 202)
+| HttpInvoker-nah (RPC über HTTP/Binär), IIOP-fern
+
+| gRPC (Core)
+| https://github.com/grpc/grpc
+| Apache-2.0
+| 26
+| 2026-01-15
+| 28
+| RPC-nah (HTTP/2, IDL erforderlich), HttpInvoker-fern
+
+| RSocket (Java)
+| https://github.com/rsocket/rsocket-java
+| Apache-2.0
+| 1
+| 2025-02-03
+| n/v (GitHub Stats 202)
+| RPC-nah (kein HTTP-Transport), HttpInvoker-fern
+
+| Apache CXF (Simple Frontend)
+| https://github.com/apache/cxf
+| Apache-2.0
+| 0
+| – (keine GitHub Releases)
+| 13
+| SOAP-basiert, RPC-nah über HTTP, HttpInvoker-fern
+|===
+
+=== Optionen im Detail
+
+==== Apache Dubbo (Triple)
+
+Vorteile:
+
+- Java-Interface als Vertrag (RPC-Stil)
+- HTTP/2-Transport, Service-Discovery-Integration möglich
+
+Nachteile:
+
+- Zusätzliches Ökosystem (Registry, Konfiguration)
+- Höherer Integrationsaufwand als REST
+
+==== spring-boot-rest-http-invoker
+
+Vorteile:
+
+- Interface-basiertes RPC über HTTP/JSON
+- Geringe Umstellung im Code
+
+Nachteile:
+
+- Community-Projekt, Wartungsstatus zu prüfen
+- Nicht Spring-Standard
+
+==== spring-rest-invoker
+
+Vorteile:
+
+- Interface-basiertes RPC über HTTP/JSON
+- Geringe Abhängigkeiten
+
+Nachteile:
+
+- Releases im Repository lange zurückliegend
+- Wartungsstatus zu prüfen
+
+==== Hessian (Community Forks)
+
+Vorteile:
+
+- Binäres RPC-Protokoll über HTTP
+- Interface-basierte Nutzung
+
+Nachteile:
+
+- Unterschiedlicher Wartungsstand je Fork
+- Lizenzklarheit je Fork prüfen
+
+==== gRPC
+
+Vorteile:
+
+- Hohe Performance (HTTP/2, Protobuf)
+- Cross-Language, starke Typisierung
+
+Nachteile:
+
+- IDL (.proto) erforderlich, Interface-Neuschreibung
+- Höherer Migrationsaufwand
+
+==== RSocket
+
+Vorteile:
+
+- Reactive, bidirektional
+- Spring-Integration vorhanden
+
+Nachteile:
+
+- Kein HTTP-Transport, anderes Betriebsmodell
+- Interface-basierte RPC-Nutzung nur mit zusätzlicher Bibliothek
+
+==== Apache CXF (Simple Frontend)
+
+Vorteile:
+
+- SOAP-basierter RPC-Ansatz über HTTP
+- Java-Interface nutzbar
+
+Nachteile:
+
+- WSDL-Generierung und SOAP-Stack erhöhen Komplexität
+- Für neue Remote-APIs meist schwergewichtig
+
+=== Projektentscheidung und Begründung
+
+Das Projekt setzt für die Standardmigration von `@Remote` auf eine REST/MVC-Strategie im RPC-Stil (POST + `@RequestBody`). Die Wahl begründet sich durch Spring-native Unterstützung, geringe zusätzliche Abhängigkeiten und die Möglichkeit, Transformationen deterministisch zu generieren. RPC-ähnliche Alternativen (Dubbo, Hessian-Forks, rest-http-invoker) bleiben als Optionen erhalten, erfordern jedoch zusätzliche Abhängigkeiten und projektspezifische Entscheidungen.
+
+OpenAPI wird nicht automatisch generiert. Der openapi-generator erzeugt Code aus einer OpenAPI-Spezifikation, aber keine Spezifikation aus Spring-MVC-Controllern. Eine automatische Spec-Erzeugung erfordert zusätzliche Tools (z. B. springdoc oder swagger-core). Diese Entscheidung wird projektspezifisch getroffen und ist nicht Default der Migration.
+
+=== Beispiel
+
+In EJB werden Remote-Aufrufe über eine Schnittstelle definiert:
+
+.Beispiel: VORHER (EJB)
+[source,java]
+----
+import javax.ejb.Remote;
+
+@Remote
+public interface BookingGateway {
+    BookingSummary load(BookingId id);
+}
+----
+
+In Spring entsteht stattdessen eine explizite API-Schicht:
+
+.Beispiel: NACHHER (Spring Boot)
+[source,java]
+----
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class BookingGatewayController {
+
+    private final BookingService bookingService;
+
+    public BookingGatewayController(BookingService bookingService) {
+        this.bookingService = bookingService;
+    }
+
+    @PostMapping("/api/BookingGateway/load")
+    public BookingSummary load(@RequestBody BookingId id) {
+        return bookingService.load(id);
+    }
+}
+----
+
+=== Automatisierung im Projekt
+
+Die Migration von `@Remote`-Interfaces wird durch mehrere Recipes unterstützt. Die Strategie wird über
+`project.yaml` gesteuert.
+
+==== Konfiguration (project.yaml)
+
+[source,yaml]
+----
+migration:
+  remote:
+    strategy: rest   # oder: manual
+----
+
+[cols="1,2,2"]
+|===
+| Wert | Beschreibung | Generierte Artefakte
+
+| `rest` (Default)
+| REST/MVC + @HttpExchange Client
+| Controller, DTOs, Client-Interface, Client-Config
+
+| `manual`
+| Marker für manuelle Migration
+| @NeedsReview auf Interface
+|===
+
+==== Strategie: REST (Default)
+
+Die REST-Strategie generiert eine vollständige RPC-ähnliche API über HTTP:
+
+===== Generierte Artefakte
+
+[cols="2,3"]
+|===
+| Artefakt | Beschreibung
+
+| `{Interface}RestController`
+| Spring MVC Controller mit `@PostMapping` pro Methode
+
+| `{MethodName}Request` DTOs
+| Request-DTOs für Methoden mit mehreren Parametern
+
+| `{Interface}Client`
+| Spring 6 `@HttpExchange` Client-Interface
+
+| `{Interface}ClientConfig`
+| `@Configuration` mit `HttpServiceProxyFactory`
+|===
+
+===== Pfad-Schema
+
+Einzelne Methoden erhalten den Pfad `/api/{Interface}/{method}`:
+
+[source,java]
+----
+@PostMapping("/api/SearchService/findById")
+public Result findById(@RequestBody SearchByIdRequest request) { ... }
+----
+
+===== Überladene Methoden (Overloads)
+
+Bei überladenen Methoden (gleicher Name, unterschiedliche Parameter) wird ein numerischer Suffix
+an den Pfad angehängt:
+
+[source,java]
+----
+// Interface: void search(String query)
+//            void search(String query, int limit)
+//            void search(SearchFilter filter)
+
+@PostMapping("/api/SearchService/search/1")  // search(String)
+@PostMapping("/api/SearchService/search/2")  // search(String, int)
+@PostMapping("/api/SearchService/search/3")  // search(SearchFilter)
+----
+
+[IMPORTANT]
+====
+Die Nummerierung basiert auf der **Reihenfolge in der Quelldatei** (Source-Order).
+Das Ändern der Methodenreihenfolge im Interface ändert die generierten Pfade.
+Dies kann bestehende Clients brechen.
+====
+
+===== DTO-Namensschema
+
+DTOs werden generiert, wenn eine Methode mehr als einen Parameter hat oder der Parameter
+ein primitiver Typ ist:
+
+[cols="2,2"]
+|===
+| Methode | DTO-Name
+
+| `findById(Long id)` (nicht überladen)
+| `FindByIdRequest`
+
+| `search(String query)` (Overload 1)
+| `Search1Request`
+
+| `search(String query, int limit)` (Overload 2)
+| `Search2Request`
+
+| `search(SearchFilter filter)` (Overload 3)
+| `Search3Request`
+
+| `process(String name, Item... items)`
+| `ProcessRequest` (Varargs als `Item[]`)
+|===
+
+[NOTE]
+====
+Bei überladenen Methoden erhalten **alle** Varianten eine Nummerierung (`Search1Request`,
+`Search2Request`, ...), nicht nur die zweite und folgende.
+====
+
+Varargs-Parameter werden in DTOs als Array-Typ gespeichert (`Item[]` statt `Item...`).
+
+===== Client-Konfiguration
+
+Der generierte Client benötigt eine Base-URL, die über Properties konfiguriert wird.
+Der Property-Name folgt dem Muster `{interfaceName}.baseUrl` (camelCase):
+
+[source,properties]
+----
+# application.properties
+searchService.baseUrl=http://localhost:8080
+----
+
+Die Konfigurationsklasse liest diese Property:
+
+[source,java]
+----
+@Configuration
+public class SearchServiceClientConfig {
+    @Value("${searchService.baseUrl}")
+    private String baseUrl;
+
+    @Bean
+    public SearchServiceClient searchServiceClient() {
+        // HttpServiceProxyFactory setup...
+    }
+}
+----
+
+===== Implementation-Binding
+
+Der Controller wird mit der konkreten Implementation verbunden. Die Priorisierung:
+
+1. Klasse mit `@Stateless` oder `@Singleton` (EJB)
+2. Klasse mit `@Service` oder `@Component` (Spring)
+3. Einzige unannotierte Implementierung
+
+Bei keiner oder mehreren passenden Implementierungen wird ein Controller-Stub mit
+`@NeedsReview(category = REMOTE_ACCESS)` generiert, der manuelle Anpassung erfordert.
+
+==== Strategie: Manual
+
+Die Manual-Strategie ist für Fälle vorgesehen, in denen die automatische REST-Generierung
+nicht passend ist (z.B. komplexe Security-Anforderungen, gRPC-Migration).
+
+[source,yaml]
+----
+migration:
+  remote:
+    strategy: manual
+----
+
+Das Recipe `MigrateRemoteToMarker`:
+
+* **Entfernt** die `@Remote`-Annotation vom Interface
+* **Fügt** `@NeedsReview(category = REMOTE_ACCESS)` hinzu
+* **Generiert** keine Controller oder Clients
+
+.Beispiel: Manual-Strategie
+[source,java]
+----
+// VORHER
+@Remote
+public interface PaymentGateway { ... }
+
+// NACHHER
+@NeedsReview(category = NeedsReview.Category.REMOTE_ACCESS,
+             reason = "Remote interface requires manual migration to REST/gRPC")
+public interface PaymentGateway { ... }
+----
+
+==== Legacy: Stub-Generator
+
+Für Kompatibilität existiert weiterhin der ältere Stub-Generator:
+
+* `com.github.rewrite.ejb.GenerateRemoteEjbStubs`
+
+Dieser erzeugt nur Skelett-Klassen mit `UnsupportedOperationException` und ist für Fälle gedacht,
+in denen die vollständige REST-Generierung nicht gewünscht ist.
+
+=== Siehe auch
+
+* **Projektkonfiguration:** `docs/research/project-configuration-yaml.md` enthält die vollständige
+  Referenz aller `project.yaml`-Optionen einschließlich `migration.remote.strategy`.
+* **Migrationsstrategien:** Kapitel „Migrationsstrategien" beschreibt allgemeine Vorgehensweisen
+  (Big-Bang, Strangler, modulweise Migration).
+* **JAX-RS:** Kapitel „JAX-RS" dokumentiert die REST-Client-Migration mit ähnlicher Strategiewahl.

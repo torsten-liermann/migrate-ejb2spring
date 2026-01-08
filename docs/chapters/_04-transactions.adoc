@@ -1,0 +1,201 @@
+== Transactions
+
+Transaktionen sind in EJB ein Kernbestandteil der Spezifikation. Container-Managed Transactions (CMT) sind der Standard, und die Transaktionssemantik wird über `@TransactionAttribute` und optional `@TransactionManagement` gesteuert. Spring bietet ebenfalls deklarative Transaktionen, aber die Regeln sind nicht identisch: Rollback-Verhalten, Proxy-Grenzen und Aufrufwege müssen bewusst berücksichtigt werden.
+
+.Spezifikationsreferenzen
+****
+* https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#a881[Jakarta EJB 4.0 Spec - Chapter 8: Transaction Management]
+* https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#a2065[Jakarta EJB 4.0 Spec - §13.2 Transaction Attributes]
+* https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#a1984[Jakarta EJB 4.0 Spec - §13.1 Bean-Managed vs Container-Managed]
+* https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#a2200[Jakarta EJB 4.0 Spec - §13.3.1 Rollback Rules]
+****
+
+=== @TransactionAttribute -> @Transactional
+
+Die grundlegenden Propagationsregeln lassen sich abbilden, die Semantik der Ausnahmen ist jedoch unterschiedlich (Spring rollt standardmäßig nur bei unchecked Exceptions zurück). Das muss im Transaktionskapitel explizit geprüft werden.
+
+.TransactionAttributeType Mapping
+[cols="2,2,1"]
+|===
+| EJB TransactionAttributeType | Spring Propagation | Standard
+
+| `REQUIRED`
+| `Propagation.REQUIRED`
+| icon:check[role=green] (Default)
+
+| `REQUIRES_NEW`
+| `Propagation.REQUIRES_NEW`
+|
+
+| `MANDATORY`
+| `Propagation.MANDATORY`
+|
+
+| `NOT_SUPPORTED`
+| `Propagation.NOT_SUPPORTED`
+|
+
+| `SUPPORTS`
+| `Propagation.SUPPORTS`
+|
+
+| `NEVER`
+| `Propagation.NEVER`
+|
+|===
+
+.Beispiel: VORHER (EJB)
+[source,java]
+----
+import javax.ejb.Stateless;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
+
+@Stateless
+public class AccountService {
+
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public void transfer(AccountId fromId, AccountId toId, Money amount) {
+    }
+
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+    public void auditLog(String action, String details) {
+    }
+
+    @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
+    public AccountBalance getBalance(AccountId accountId) {
+    }
+}
+----
+
+In EJB ist `REQUIRED` der Standardwert, wenn keine Transaktionsannotation gesetzt ist. Deployment-Deskriptoren können Transaktionsattribute ergänzen oder überschreiben; diese Overrides sind bei der Migration zu berücksichtigen.
+
+.Beispiel: NACHHER (Spring Boot)
+[source,java]
+----
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
+
+@Service
+@Transactional
+public class AccountService {
+
+    public void transfer(AccountId fromId, AccountId toId, Money amount) {
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void auditLog(String action, String details) {
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED, readOnly = true)
+    public AccountBalance getBalance(AccountId accountId) {
+    }
+}
+----
+
+In Spring ist `Propagation.REQUIRED` das Standardverhalten. Abweichungen wie `REQUIRES_NEW` oder `NOT_SUPPORTED` müssen explizit angegeben werden.
+
+[NOTE]
+====
+Rollback-Regeln sind unterschiedlich: EJB rollt bei System Exceptions zurück, Spring standardmäßig nur bei unchecked Exceptions. Migrationen mit checked Exceptions benötigen explizite `rollbackFor` oder `@Transactional`-Konfiguration.
+====
+
+=== @TransactionManagement entfernen
+
+EJB unterscheidet Container-Managed (CMT) und Bean-Managed Transactions (BMT). In Spring ist deklarative Transaktion der Standard; Programmatic Transactions sind möglich, aber selten nötig.
+
+.Beispiel: VORHER (EJB)
+[source,java]
+----
+import javax.ejb.Stateless;
+import javax.ejb.TransactionManagement;
+import javax.ejb.TransactionManagementType;
+import javax.annotation.Resource;
+import javax.transaction.UserTransaction;
+
+@Stateless
+@TransactionManagement(TransactionManagementType.CONTAINER)
+public class OrderService {
+}
+
+@Stateless
+@TransactionManagement(TransactionManagementType.BEAN)
+public class SettlementService {
+
+    @Resource
+    private UserTransaction userTransaction;
+
+    public void settle(InvoiceId invoiceId) throws Exception {
+        userTransaction.begin();
+        try {
+            userTransaction.commit();
+        } catch (Exception e) {
+            userTransaction.rollback();
+            throw e;
+        }
+    }
+}
+----
+
+.Beispiel: NACHHER (Spring Boot)
+[source,java]
+----
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
+
+@Service
+@Transactional
+public class OrderService {
+}
+
+@Service
+public class SettlementService {
+
+    private final PlatformTransactionManager txManager;
+
+    public SettlementService(PlatformTransactionManager txManager) {
+        this.txManager = txManager;
+    }
+
+    public void settle(InvoiceId invoiceId) {
+        TransactionDefinition def = new DefaultTransactionDefinition();
+        TransactionStatus status = txManager.getTransaction(def);
+        try {
+            txManager.commit(status);
+        } catch (Exception e) {
+            txManager.rollback(status);
+            throw e;
+        }
+    }
+}
+----
+
+In EJB darf BMT nur dort genutzt werden, wo keine containerverwalteten Transaktionen aktiv sind. Bei der Migration ist daher zu prüfen, ob sich `UserTransaction`‑Logik mit `@Transactional`‑Grenzen überschneidet. In Spring sind programmatische Transaktionen explizit und stehen unabhängig von `@Transactional`, erfordern aber eine klare Verantwortlichkeit im Service‑Design.
+
+[CAUTION]
+====
+Transaktionen in Spring wirken nur über Proxies. Interne Methodenaufrufe innerhalb derselben Klasse umgehen den Proxy und lösen keine Transaktion aus. Das ist in EJB anders und muss bei Migrationen explizit geprüft werden.
+====
+
+=== Automatisierte Migration
+
+[cols="1,3"]
+|===
+| Name | `de.example.rewrite.ejb.MigrateTransactionAttribute`
+| Beschreibung | Transformiert `@TransactionAttribute` zu `@Transactional` mit entsprechendem Propagation-Mapping.
+| Konfiguration | keine
+|===
+
+[cols="1,3"]
+|===
+| Name | `de.example.rewrite.ejb.MigrateTransactions`
+| Beschreibung | Kombiniert alle Transaktions-Rezepte.
+| Konfiguration | keine
+|===
+
+---

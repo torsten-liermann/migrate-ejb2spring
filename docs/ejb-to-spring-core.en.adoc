@@ -1,0 +1,218 @@
+= EJB to Spring Boot Migration - Core Documentation
+:toc: left
+:sectnums:
+:source-highlighter: rouge
+
+== Migration Overview
+
+The recipes apply syntactic mappings for EJB constructs with clear Spring equivalents and emit `@NeedsReview` annotations for cases requiring architectural decisions (timers, remoting, security, JNDI).
+
+=== Direct Mappings
+
+These transformations have clear equivalents:
+
+[cols="1,1"]
+|===
+|EJB/Jakarta EE |Spring Boot
+
+|`@Stateless`
+|`@Service`
+
+|`@Singleton`
+|`@Service`
+
+|`@TransactionAttribute`
+|`@Transactional`
+
+|`@Local`
+|Removed (implicit in Spring)
+|===
+
+=== Strategy-Dependent Mappings
+
+These depend on `project.yaml` configuration:
+
+[cols="1,2"]
+|===
+|EJB/Jakarta EE |Spring Boot
+
+|`@EJB`
+|`@Autowired` (with `inject.strategy=migrate-to-spring`) or kept as `@Inject` (with `inject.strategy=keep-jsr330`). Name/lookup attributes require review.
+
+|`@Inject` / `@Named`
+|Kept with `jakarta.inject-api` dependency or migrated to `@Autowired` / `@Component`.
+|===
+
+=== Review-Required Mappings
+
+These require additional configuration or architectural decisions:
+
+* `@MessageDriven` → `@JmsListener` (JMS provider configuration needed)
+* `@Schedule` → `@Scheduled` or Quartz (cluster mode decision)
+* `@Asynchronous` → `@Async` (executor configuration)
+* Security annotations → Spring Security (authentication setup)
+* `@Remote` → REST endpoints (protocol decision)
+* JNDI lookups → Spring configuration properties
+
+== Project Structure
+
+[source]
+----
+migrate-ejb2spring/
+├── ejb-demo/                    # EJB 3.x demo code (before state)
+├── ejb-to-spring-recipes/       # OpenRewrite recipes + tests
+│   └── src/main/java/com/github/rewrite/ejb/
+│       ├── Migrate*.java        # Recipe implementations
+│       └── config/              # Configuration handling
+├── migrate/                     # Migration runner
+└── docs/                        # Documentation
+----
+
+=== Recipe Module Structure
+
+Each recipe follows the OpenRewrite pattern:
+
+1. **Visitor pattern**: Traverse and transform the AST
+2. **Test class**: Verify before/after transformations
+3. **YAML registration**: Register in `META-INF/rewrite/ejb-to-spring.yml`
+
+== Using This Repository
+
+The `migrate/` module is the migration runner. It references the target project (`ejb-demo/` by default) and applies recipes from `ejb-to-spring-recipes/`.
+
+=== Full Migration Run
+
+Execute all configured recipes on the target project:
+
+[source,bash]
+----
+./mvnw -f migrate validate
+----
+
+This runs the composite recipe `com.github.rewrite.ejb.MigrateEjbToSpring` defined in `META-INF/rewrite/ejb-to-spring.yml`.
+
+=== Incremental Migration
+
+For incremental migration, run individual recipes:
+
+[source,bash]
+----
+# Step 1: Migrate session beans
+./mvnw org.openrewrite.maven:rewrite-maven-plugin:run \
+  -Drewrite.recipeArtifactCoordinates=com.github.rewrite:ejb-to-spring-recipes:1.0.0-SNAPSHOT \
+  -Drewrite.activeRecipes=com.github.rewrite.ejb.MigrateStatelessToService \
+  -pl ejb-demo
+
+# Step 2: Migrate injection points
+./mvnw org.openrewrite.maven:rewrite-maven-plugin:run \
+  -Drewrite.recipeArtifactCoordinates=com.github.rewrite:ejb-to-spring-recipes:1.0.0-SNAPSHOT \
+  -Drewrite.activeRecipes=com.github.rewrite.ejb.MigrateEjbToAutowired \
+  -pl ejb-demo
+
+# Continue with remaining recipes...
+----
+
+=== Multi-Module Projects
+
+For multi-module projects, place `project.yaml` in the project root and run:
+
+[source,bash]
+----
+./mvnw org.openrewrite.maven:rewrite-maven-plugin:run \
+  -Drewrite.recipeArtifactCoordinates=com.github.rewrite:ejb-to-spring-recipes:1.0.0-SNAPSHOT \
+  -Drewrite.activeRecipes=com.github.rewrite.ejb.MigrateEjbToSpring
+----
+
+Configuration resolution order: module-level `project.yaml` > root `project.yaml` > built-in defaults. Module-level configuration overrides root settings for that module.
+
+== Project Configuration (project.yaml)
+
+The migration behavior is controlled via an optional `project.yaml` in the project root:
+
+[source,yaml]
+----
+migration:
+  timer:
+    strategy: scheduled      # scheduled | taskscheduler | quartz
+    cluster: none            # none | quartz-jdbc | shedlock
+  jms:
+    provider: artemis        # none | artemis | activemq | embedded
+  inject:
+    strategy: keep-jsr330    # keep-jsr330 | migrate-to-spring
+  remote:
+    strategy: rest           # rest | manual
+  jsf:
+    runtime: joinfaces       # joinfaces | manual
+  security:
+    strategy: keep-jakarta   # keep-jakarta | spring-security
+
+jaxrs:
+  strategy: keep-jaxrs       # keep-jaxrs | migrate-to-spring-mvc
+  server:
+    provider: jersey         # jersey | resteasy | cxf (omit for auto-detect)
+    basePath: /api
+  client:
+    strategy: keep-jaxrs     # keep-jaxrs | manual | migrate-restclient | migrate-webclient
+
+jaxws:
+  provider: cxf              # cxf | manual
+  basePath: /services
+----
+
+=== Strategy Details
+
+==== Timer Strategy
+
+[cols="1,3"]
+|===
+|Strategy |Description
+
+|`scheduled`
+|Simple `@Schedule` to `@Scheduled`. Complex cases (Timer parameter, programmatic timers) marked for review.
+
+|`taskscheduler`
+|Migrate to Spring `TaskScheduler` for programmatic timer support.
+
+|`quartz`
+|Full Quartz integration for persistence and cluster support.
+|===
+
+==== Cluster Mode
+
+[cols="1,3"]
+|===
+|Mode |Description
+
+|`none`
+|No cluster coordination. All strategies allowed.
+
+|`quartz-jdbc`
+|Quartz JDBC job store. Requires `strategy: quartz`.
+
+|`shedlock`
+|ShedLock distributed locking. Compatible with `scheduled` and `taskscheduler`.
+|===
+
+==== Inject Strategy
+
+[cols="1,3"]
+|===
+|Strategy |Description
+
+|`keep-jsr330`
+|Keep `@Named` and `@Inject`. Add `jakarta.inject-api` dependency.
+
+|`migrate-to-spring`
+|Migrate `@Named` to `@Component`, `@Inject` to `@Autowired`.
+|===
+
+== Prerequisites
+
+* Java 17+
+* Maven 3.8+
+
+== Further Documentation
+
+For detailed chapter-by-chapter documentation (German), see:
+
+* link:ejb-to-spring-reference.adoc[Complete Migration Reference]

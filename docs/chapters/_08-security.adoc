@@ -1,0 +1,97 @@
+== Security
+
+EJB-Sicherheit ist deklarativ in das Container-Modell eingebettet. Rollen, Run-As-Semantik und Zugriffskontrolle werden vom Application Server umgesetzt und sind eng mit dem Identitäts- und Kontextmodell verknüpft. In Spring Boot wird dieselbe Fachlogik typischerweise über Spring Security abgesichert, allerdings mit einem anderen Modell für Ausdrücke, Rollennamen und Kontextweitergabe. Eine Migration muss daher sowohl die Annotationen als auch die semantische Auswertung prüfen.
+
+.Spezifikationsreferenzen
+****
+* https://jakarta.ee/specifications/security/3.0/jakarta-security-spec-3.0.html[Jakarta Security 3.0 Spec]
+* https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#a1593[Jakarta EJB 4.0 Spec - §10.6 Security]
+* https://jakarta.ee/specifications/annotations/2.1/jakarta-annotations-spec-2.1.html#declaresroles[Jakarta Annotations 2.1 - @DeclareRoles]
+* https://docs.spring.io/spring-security/reference/servlet/authorization/method-security.html[Spring Security - Method Security]
+****
+
+=== Rollenbasierter Zugriff
+
+EJB arbeitet mit `@RolesAllowed`, `@PermitAll` und `@DenyAll`. In Spring Security entspricht das der Method Security mit `@PreAuthorize` oder `@Secured`. `@PreAuthorize` erlaubt SpEL‑Ausdrücke, die Parameter und Sicherheitskontext auswerten.
+
+.Beispiel: VORHER (EJB)
+[source,java]
+----
+import javax.annotation.security.RolesAllowed;
+import javax.annotation.security.PermitAll;
+import javax.annotation.security.DenyAll;
+import javax.ejb.Stateless;
+
+@Stateless
+@RolesAllowed({"ACCOUNT_ADMIN", "ACCOUNT_AGENT"})
+public class CustomerAccountService {
+
+    @PermitAll
+    public AccountSummary viewPublicProfile(AccountId accountId) {
+        return loadSummary(accountId);
+    }
+
+    @RolesAllowed("ACCOUNT_ADMIN")
+    public void closeAccount(AccountId accountId) {
+        close(accountId);
+    }
+
+    @DenyAll
+    public void internalReconcile(AccountId accountId) {
+        reconcile(accountId);
+    }
+}
+----
+
+.Beispiel: NACHHER (Spring Boot)
+[source,java]
+----
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Service;
+
+@Service
+@PreAuthorize("hasAnyRole('ACCOUNT_ADMIN','ACCOUNT_AGENT')")
+public class CustomerAccountService {
+
+    @PreAuthorize("permitAll()")
+    public AccountSummary viewPublicProfile(AccountId accountId) {
+        return loadSummary(accountId);
+    }
+
+    @PreAuthorize("hasRole('ACCOUNT_ADMIN')")
+    public void closeAccount(AccountId accountId) {
+        close(accountId);
+    }
+
+    @PreAuthorize("denyAll()")
+    public void internalReconcile(AccountId accountId) {
+        reconcile(accountId);
+    }
+}
+----
+
+Method Security muss in Spring explizit aktiviert werden, etwa über `@EnableMethodSecurity`. Rollenpräfixe (`ROLE_`) und Authority-Namen sollten überprüft werden, da EJB und Spring unterschiedliche Konventionen verwenden.
+
+=== Security-Domain und Rollenabbildung
+
+In WildFly/EAP werden Rollen häufig über Security Domains bzw. Elytron‑Konfigurationen zugewiesen. Diese Zuweisungen sind außerhalb des Anwendungscodes definiert und wirken auf EJB‑Methodenprüfungen. In Spring Boot müssen diese Rollen über den Security‑Stack (Authentication Provider, JWT/LDAP‑Mapping, `GrantedAuthorities`) bereitgestellt werden. Die Migration erfordert daher eine explizite Rollenabbildung von der Server‑Konfiguration in eine Spring‑Security‑Konfiguration.
+
+=== Run-As und Identitätswechsel
+
+`@RunAs` ist ein EJB-spezifisches Konzept für einen rollenbasierten Identitätswechsel innerhalb des Containers. In Spring Security gibt es kein direktes Pendant mit derselben Semantik. Der Wechsel des Sicherheitskontexts erfolgt über `SecurityContextHolder` oder über eine separate Service‑Schicht mit erhöhten Rechten. Bei Migrationen ist zu klären, ob der fachliche Zweck von `@RunAs` durch eine technische Service‑Grenze oder ein separates Systemkonto abgebildet werden kann.
+
+=== Hinweis zur Kontextweitergabe
+
+Bei EJB‑Aufrufen innerhalb desselben Containers wird der Sicherheitskontext weitergegeben. In Spring hängt dies vom gewählten Mechanismus ab, etwa bei asynchroner Verarbeitung oder Messaging. Bei `@Async` oder `@JmsListener` muss geprüft werden, ob ein SecurityContext vorhanden ist und ob er aktiv propagiert wird.
+
+Bei WebSocket‑Handlern und Scheduled Jobs ist der Sicherheitskontext standardmäßig nicht automatisch propagiert. Falls der EJB‑Code auf `SessionContext.getCallerPrincipal()` oder `isCallerInRole()` angewiesen ist, muss für diese Ausführungspfade eine technische Alternative definiert werden.
+
+=== Automatisierte Migration
+
+[cols="1,3"]
+|===
+| Name | Beschreibung
+
+| `com.github.rewrite.ejb.RemoveJBossSecurityDomain`
+| Entfernt `@org.jboss.ejb3.annotation.SecurityDomain` Annotationen (JBoss-spezifisch, keine Spring-Entsprechung).
+|===

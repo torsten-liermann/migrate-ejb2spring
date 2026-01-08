@@ -1,0 +1,92 @@
+package com.github.rewrite.ejb.annotations;
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Repeatable;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+/**
+ * Marks code that requires manual review after EJB-to-Spring migration.
+ * <p>
+ * This annotation is automatically added by migration recipes when automatic
+ * transformation is not possible or when the migrated code requires verification.
+ */
+@Documented
+@Repeatable(NeedsReview.Container.class)
+@Retention(RetentionPolicy.SOURCE)
+@Target({ElementType.TYPE, ElementType.METHOD, ElementType.FIELD, ElementType.PARAMETER})
+public @interface NeedsReview {
+
+    /**
+     * Describes why this code needs review.
+     */
+    String reason();
+
+    /**
+     * Category of the migration issue.
+     */
+    Category category();
+
+    /**
+     * Original EJB/Java EE construct that was migrated.
+     */
+    String originalCode() default "";
+
+    /**
+     * Suggested action or migration path.
+     */
+    String suggestedAction() default "";
+
+    /**
+     * Codex P2.1h Round 53: Stable key for deterministic matching across cycles.
+     * Format: sourcePath#className#ds=N (for DataSource annotations)
+     * This enables reliable removal of @NeedsReview in subsequent cycles.
+     */
+    String stableKey() default "";
+
+    /**
+     * Categories for migration review items.
+     */
+    enum Category {
+        /** Remote EJB access needs replacement (REST, gRPC, etc.) */
+        REMOTE_ACCESS,
+        /** Concurrency/locking semantics changed */
+        CONCURRENCY,
+        /** Configuration needs manual setup (datasource, JNDI, etc.) */
+        CONFIGURATION,
+        /** Scheduling expression needs verification */
+        SCHEDULING,
+        /** Timer-related EJB types not fully migrated (WFQ-004) */
+        TIMER,
+        /** Messaging/JMS configuration needs review */
+        MESSAGING,
+        /** CDI feature not directly portable to Spring */
+        CDI_FEATURE,
+        /** Transaction semantics may differ */
+        TRANSACTION,
+        /** Async processing semantics differ */
+        ASYNC,
+        /** Spring configuration class needed */
+        SPRING_CONFIG,
+        /** Manual migration required (Jakarta Batch, WebSocket, JSF) */
+        MANUAL_MIGRATION,
+        /** Stateful EJB migrated to prototype scope - scope review needed */
+        STATEFUL_BEAN,
+        /** Semantic change - behavior differs between source and target platform */
+        SEMANTIC_CHANGE,
+        /** General migration issue */
+        OTHER
+    }
+
+    /**
+     * Container annotation for repeatable @NeedsReview.
+     */
+    @Documented
+    @Retention(RetentionPolicy.SOURCE)
+    @Target({ElementType.TYPE, ElementType.METHOD, ElementType.FIELD, ElementType.PARAMETER})
+    @interface Container {
+        NeedsReview[] value();
+    }
+}

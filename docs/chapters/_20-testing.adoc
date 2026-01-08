@@ -1,0 +1,27 @@
+== Tests
+
+EJB-Anwendungen werden häufig mit Arquillian oder containerbasierten Integrationstests geprüft. Spring Boot stellt mit `@SpringBootTest`, `@DataJpaTest` und weiteren Test-Slices ein anderes Testmodell bereit. Die Migration sollte bewusst zwischen fachlichen Integrationstests und isolierten Unit-Tests unterscheiden.
+
+=== Containerbasierte Tests
+
+Arquillian startet typischerweise einen Application Server und deployt die EJB-Anwendung. In Spring Boot wird der Kontext innerhalb des Tests gestartet und kann über Testcontainers mit externen Abhängigkeiten wie Datenbanken verbunden werden.
+
+.Beispiel: NACHHER (Spring Boot)
+[source,java]
+----
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+
+@SpringBootTest
+@ActiveProfiles("test")
+class BookingFlowTest {
+}
+----
+
+=== Testcontainers für Infrastruktur
+
+Für Datenbanken oder Messaging kann Testcontainers genutzt werden. Wenn im Projekt Development-time Services vorgesehen sind, müssen die Build- und Startpfade dafür explizit dokumentiert werden. Das ersetzt nicht die Infrastrukturkonfiguration für produktive Umgebungen.
+
+=== Test-Stubs und Konfiguration
+
+EJB-Tests nutzen oft Stubs über CDI-Producer oder Deployment-Deskriptoren. In Spring werden Test-Stubs typischerweise über `@TestConfiguration`, `@MockBean` oder über Profile eingebunden. Die Entscheidung hängt davon ab, ob die Stubs nur im Testkontext oder auch in integrierten Umgebungen benötigt werden.

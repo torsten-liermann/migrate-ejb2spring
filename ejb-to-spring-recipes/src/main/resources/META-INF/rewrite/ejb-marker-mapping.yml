@@ -1,0 +1,13 @@
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.rewrite.ejb.MapEjbAnnotationsToMarkersRecipe
+displayName: Map EJB annotations to no-op markers
+description: >-
+  Replaces javax/jakarta EJB annotations and related enums with project-local marker
+  annotations without runtime semantics.
+tags:
+  - ejb
+  - migration
+  - marker
+recipeList:
+  - com.github.rewrite.ejb.MapEjbAnnotationsToMarkers

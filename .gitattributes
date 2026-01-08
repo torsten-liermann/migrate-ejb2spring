@@ -1,0 +1,35 @@
+# Handle line endings automatically for files detected as text
+* text=auto
+
+# Java sources
+*.java text diff=java
+*.gradle text diff=java
+*.kt text diff=kotlin
+
+# Properties and config
+*.properties text
+*.yml text
+*.yaml text
+*.xml text
+*.json text
+
+# Scripts
+*.sh text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+mvnw text eol=lf
+mvnw.cmd text eol=crlf
+
+# Documentation
+*.md text diff=markdown
+*.txt text
+
+# Binary files
+*.jar binary
+*.class binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary

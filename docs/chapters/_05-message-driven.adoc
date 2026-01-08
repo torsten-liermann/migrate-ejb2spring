@@ -1,0 +1,154 @@
+== Message-Driven Beans
+
+Message-Driven Beans (MDB) sind EJBs für asynchronen Nachrichteneingang. Sie sind containerverwaltet, werden über Activation Properties konfiguriert und laufen in einem JMS-Context mit Transaktionen und Redelivery-Semantik. In Spring wird dies durch `@JmsListener` und Listener-Container-Konfiguration abgebildet. Die Semantik ist ähnlich, aber nicht identisch: Konfiguration, Redelivery-Strategie, Acknowledge-Mode und Error-Handling müssen explizit geprüft werden.
+
+=== @MessageDriven -> @Component + @JmsListener
+
+.Beispiel: VORHER (EJB)
+[source,java]
+----
+import javax.ejb.MessageDriven;
+import javax.ejb.ActivationConfigProperty;
+import javax.jms.Message;
+import javax.jms.MessageListener;
+import javax.jms.TextMessage;
+
+@MessageDriven(activationConfig = {
+    @ActivationConfigProperty(propertyName = "destinationType",
+                              propertyValue = "javax.jms.Queue"),
+    @ActivationConfigProperty(propertyName = "destinationLookup",
+                              propertyValue = "jms/ShipmentQueue"),
+    @ActivationConfigProperty(propertyName = "acknowledgeMode",
+                              propertyValue = "Auto-acknowledge")
+})
+public class ShipmentListener implements MessageListener {
+
+    @EJB
+    private ShipmentService shipmentService;
+
+    @Override
+    public void onMessage(Message message) {
+        if (message instanceof TextMessage textMessage) {
+            ShipmentCommand cmd = parse(textMessage);
+            shipmentService.register(cmd);
+        }
+    }
+}
+----
+
+.Beispiel: NACHHER (Spring Boot)
+[source,java]
+----
+import org.springframework.jms.annotation.JmsListener;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+@Component
+public class ShipmentListener {
+
+    private final ShipmentService shipmentService;
+
+    public ShipmentListener(ShipmentService shipmentService) {
+        this.shipmentService = shipmentService;
+    }
+
+    @JmsListener(destination = "ShipmentQueue")
+    @Transactional
+    public void onMessage(ShipmentCommand command) {
+        shipmentService.register(command);
+    }
+}
+----
+
+[NOTE]
+====
+Die MDB-Activation-Properties müssen in Spring auf Listener-Container-Properties abgebildet werden (Destination, Selector, Concurrency, Ack-Mode, Subscription). Die exakten Schlüssel variieren je nach Provider und müssen gegen die Messaging-Infrastruktur geprüft werden.
+====
+
+Die EJB‑Spezifikation erlaubt zusätzliche Activation‑Properties wie `clientId`, `subscriptionDurability` und `messageSelector`. Diese Werte sind in Spring nur wirksam, wenn sie in die konkrete Listener‑Container‑Konfiguration übertragen werden. Eine reine Annotation‑Migration ohne Container‑Konfiguration ändert das Laufzeitverhalten.
+
+.Beispiel: application.yml
+[source,yaml]
+----
+spring:
+  jms:
+    listener:
+      acknowledge-mode: auto
+      concurrency: 5-10
+----
+
+=== Error Handling und Redelivery
+
+EJB setzt Redelivery über Transaktions-Rollback und Container-Strategien um. Spring nutzt ebenfalls Transaktionen, aber die Redelivery-Strategie hängt vom verwendeten Listener-Container und Provider ab.
+
+Die EJB‑Spezifikation beschreibt, dass Runtime‑Exceptions in einer Message‑Driven‑Bean die Bean‑Instanz in den Zustand „does not exist“ überführen. `@PreDestroy` ist in diesem Fall nicht garantiert. Ressourcen, die in `@PostConstruct` geöffnet werden, müssen deshalb so verwaltet werden, dass ein Ausfall einzelner Instanzen keine Leaks erzeugt.
+
+.Beispiel: VORHER (EJB)
+[source,java]
+----
+import javax.ejb.MessageDriven;
+import javax.ejb.ActivationConfigProperty;
+import javax.annotation.Resource;
+import javax.ejb.MessageDrivenContext;
+import javax.jms.MessageListener;
+
+@MessageDriven(activationConfig = {
+    @ActivationConfigProperty(propertyName = "destinationLookup",
+                              propertyValue = "jms/InvoiceQueue")
+})
+public class InvoiceListener implements MessageListener {
+
+    @Resource
+    private MessageDrivenContext context;
+
+    @Override
+    public void onMessage(javax.jms.Message message) {
+        try {
+            processInvoice(message);
+        } catch (Exception e) {
+            context.setRollbackOnly();
+        }
+    }
+}
+----
+
+.Beispiel: NACHHER (Spring Boot)
+[source,java]
+----
+import org.springframework.jms.annotation.JmsListener;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+@Component
+public class InvoiceListener {
+
+    @JmsListener(destination = "InvoiceQueue")
+    @Transactional
+    public void onMessage(InvoiceCommand command) {
+        processInvoice(command);
+    }
+}
+----
+
+[WARNING]
+====
+Redelivery-Backoff, Dead Letter Queues und Acknowledge-Strategien sind provider-abhängig. Die Migration muss diese Einstellungen explizit prüfen und darf sich nicht auf Default-Verhalten verlassen.
+====
+
+=== Automatisierte Migration
+
+[cols="1,3"]
+|===
+| Name | `de.example.rewrite.ejb.MigrateMessageDrivenToJmsListener`
+| Beschreibung | Transformiert `@MessageDriven` zu `@Component` mit `@JmsListener` auf der `onMessage`-Methode.
+| Konfiguration | keine
+|===
+
+[cols="1,3"]
+|===
+| Name | `de.example.rewrite.ejb.MigrateMessaging`
+| Beschreibung | Kombiniert `MigrateMessageDrivenToJmsListener` und `AddEnableJmsAndScheduling`.
+| Konfiguration | keine
+|===
+
+---
