@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Core EJB Migrations
 - `MigrateStatelessToService`: `@Stateless` → `@Service`
-- `MigrateSingletonToComponent`: `@Singleton` → `@Service` (removes `@Lock`, `@ConcurrencyManagement`, `@Startup`)
+- `MigrateSingletonToService`: `@Singleton` → `@Service` (removes `@Lock`, `@ConcurrencyManagement`, `@Startup`)
 - `MigrateEjbToAutowired`: `@EJB` → `@Autowired`
 - `MigrateInjectToAutowired`: Injection strategy - keep JSR-330 (`@Inject`/`@Named` with `jakarta.inject-api`) or migrate to Spring (`@Autowired`/`@Component`) via `inject.strategy`
 - `MigrateTransactionAttribute`: `@TransactionAttribute` → `@Transactional`
@@ -64,4 +64,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 105 recipe test classes
 - Full integration with OpenRewrite plugin
 
-[1.0.0]: https://github.com/torsten-liermann/migrate-ejb2spring/releases/tag/v1.0.0
+[1.0.0]: https://github.com/torsten-liermann/migrate-ejb2spring/tree/main

@@ -3096,7 +3096,7 @@ public class MigrateTimerServiceToQuartz extends ScanningRecipe<MigrateTimerServ
             result = template.apply(new Cursor(getCursor(), result), result.getCoordinates().addAnnotation(markerFirst));
 
             // WFQ-017: Also remove EJB Timer API in fallback cases to meet acceptance criteria
-            // "Keine jakarta.ejb.Timer* Imports bei Quartz-Strategie"
+            // "No jakarta.ejb.Timer* imports with Quartz strategy"
             result = cleanupEjbTimerApiInFallback(result, analysis);
 
             // Remove EJB Timer imports (will be cleaned up by RemoveUnusedImports)

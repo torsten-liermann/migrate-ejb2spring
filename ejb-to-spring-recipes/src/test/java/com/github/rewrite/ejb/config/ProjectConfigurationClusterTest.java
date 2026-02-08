@@ -190,7 +190,7 @@ class ProjectConfigurationClusterTest {
             assertThatThrownBy(config::getEffectiveTimerStrategy)
                     .isInstanceOf(ConfigurationException.class)
                     .hasMessageContaining("shedlock")
-                    .hasMessageContaining("nicht kompatibel")
+                    .hasMessageContaining("not compatible")
                     .hasMessageContaining("quartz");
         }
     }

@@ -67,7 +67,7 @@ class ConfigureJsfSessionTest implements RewriteTest {
     @DocumentExample
     @Test
     void generatesSessionConfigForJakartaFacesViewScoped() {
-        // Test: Klasse mit jakarta.faces.view.ViewScoped -> Session-Config generiert
+        // Test: Class with jakarta.faces.view.ViewScoped -> Session-Config generated
         rewriteRun(
             java(
                 """
@@ -101,7 +101,7 @@ class ConfigureJsfSessionTest implements RewriteTest {
 
     @Test
     void generatesSessionConfigForJavaxFacesViewScoped() {
-        // Test: Klasse mit javax.faces.view.ViewScoped -> Session-Config generiert
+        // Test: Class with javax.faces.view.ViewScoped -> Session-Config generated
         rewriteRun(
             java(
                 """
@@ -135,7 +135,7 @@ class ConfigureJsfSessionTest implements RewriteTest {
 
     @Test
     void generatesSessionConfigForOmniFacesViewScoped() {
-        // Test: Klasse mit OmniFaces ViewScoped -> Session-Config generiert
+        // Test: Class with OmniFaces ViewScoped -> Session-Config generated
         rewriteRun(
             java(
                 """
@@ -169,7 +169,7 @@ class ConfigureJsfSessionTest implements RewriteTest {
 
     @Test
     void noChangeForSpringViewScoped() {
-        // Test: Klasse mit Spring ViewScoped -> KEINE Session-Config
+        // Test: Class with Spring ViewScoped -> NO Session-Config
         rewriteRun(
             spec -> spec.expectedCyclesThatMakeChanges(0),
             java(
@@ -209,7 +209,7 @@ class ConfigureJsfSessionTest implements RewriteTest {
 
     @Test
     void doesNotOverwriteExistingTrackingModes() {
-        // Test: server.servlet.session.tracking-modes bereits vorhanden -> NICHT ueberschreiben
+        // Test: server.servlet.session.tracking-modes already present -> DO NOT overwrite
         rewriteRun(
             java(
                 """
@@ -245,7 +245,7 @@ class ConfigureJsfSessionTest implements RewriteTest {
 
     @Test
     void doesNotOverwriteExistingClientWindowMode() {
-        // Test: joinfaces.jsf.client-window-mode bereits vorhanden -> NICHT ueberschreiben
+        // Test: joinfaces.jsf.client-window-mode already present -> DO NOT overwrite
         rewriteRun(
             java(
                 """
@@ -281,7 +281,7 @@ class ConfigureJsfSessionTest implements RewriteTest {
 
     @Test
     void doesNotOverwriteExistingSameSite() {
-        // Test: server.servlet.session.cookie.same-site bereits vorhanden -> NICHT ueberschreiben
+        // Test: server.servlet.session.cookie.same-site already present -> DO NOT overwrite
         rewriteRun(
             java(
                 """
@@ -384,7 +384,7 @@ class ConfigureJsfSessionTest implements RewriteTest {
 
     @Test
     void idempotentMigrationDoesNotDuplicate() {
-        // Test: Zweimaliges Ausfuehren dupliziert nicht
+        // Test: Running twice does not duplicate
         rewriteRun(
             spec -> spec.expectedCyclesThatMakeChanges(0),
             java(
@@ -417,7 +417,7 @@ class ConfigureJsfSessionTest implements RewriteTest {
 
     @Test
     void skipsTestSources() {
-        // Test: ViewScoped in Test-Klassen wird ignoriert
+        // Test: ViewScoped in test classes is ignored
         rewriteRun(
             spec -> spec.expectedCyclesThatMakeChanges(0),
             java(
@@ -439,7 +439,7 @@ class ConfigureJsfSessionTest implements RewriteTest {
 
     @Test
     void handlesMultipleViewScopedClasses() {
-        // Test: Mehrere ViewScoped-Klassen generieren nur einmal Config
+        // Test: Multiple ViewScoped classes generate config only once
         rewriteRun(
             java(
                 """
@@ -486,7 +486,7 @@ class ConfigureJsfSessionTest implements RewriteTest {
 
     @Test
     void handlesOnlyPartialExistingProperties() {
-        // Test: Nur fehlende Properties werden hinzugefuegt
+        // Test: Only missing properties are added
         rewriteRun(
             java(
                 """
@@ -568,9 +568,9 @@ class ConfigureJsfSessionTest implements RewriteTest {
 
     @Test
     void multiModuleGeneratesConfigPerModule() {
-        // Test: Multi-Modul Projekt - Config wird pro Modul mit ViewScoped generiert
+        // Test: Multi-module project - Config is generated per module with ViewScoped
         rewriteRun(
-            // Module A hat ViewScoped und eigene application.properties
+            // Module A has ViewScoped and its own application.properties
             java(
                 """
                 package com.example.modulea;
@@ -728,7 +728,7 @@ class ConfigureJsfSessionTest implements RewriteTest {
 
     @Test
     void noChangeWhenSpringViewScopedWithSpringImport() {
-        // Test: Spring ViewScoped mit Spring Import -> KEINE Session-Config
+        // Test: Spring ViewScoped with Spring import -> NO Session-Config
         rewriteRun(
             spec -> spec.expectedCyclesThatMakeChanges(0),
             java(
@@ -748,8 +748,8 @@ class ConfigureJsfSessionTest implements RewriteTest {
 
     @Test
     void noFalsePositiveWhenSpringFqcnWithStaleJsfImport() {
-        // Test: Spring FQCN ViewScoped mit ungenutztem JSF Import -> KEINE Session-Config
-        // Dies testet das MEDIUM Finding: Stale JSF Import darf nicht zu false positive fuehren
+        // Test: Spring FQCN ViewScoped with unused JSF import -> NO Session-Config
+        // This tests the MEDIUM finding: Stale JSF import must not cause false positive
         rewriteRun(
             spec -> spec.expectedCyclesThatMakeChanges(0),
             java(

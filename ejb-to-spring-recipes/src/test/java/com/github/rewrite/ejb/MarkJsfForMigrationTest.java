@@ -78,7 +78,7 @@ class MarkJsfForMigrationTest implements RewriteTest {
                         .contains("SEMANTIC_CHANGE")
                         .contains("@ConversationScoped")
                         .contains("import com.github.rewrite.ejb.annotations.NeedsReview")
-                        .contains("ConversationScoped wird zu session gemappt");
+                        .contains("ConversationScoped is mapped to session scope");
                     return after;
                 })
             )
@@ -120,7 +120,7 @@ class MarkJsfForMigrationTest implements RewriteTest {
                     assertThat(after)
                         .contains("@NeedsReview")
                         .contains("SEMANTIC_CHANGE")
-                        .contains("begin()/end() vorhanden")
+                        .contains("explicit begin()/end() calls detected")
                         .contains("Conversation.begin()")
                         .contains("Conversation.end()")
                         .contains("import com.github.rewrite.ejb.annotations.NeedsReview");

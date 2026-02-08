@@ -355,9 +355,9 @@ public class MarkJsfForMigration extends ScanningRecipe<MarkJsfForMigration.Accu
             doAfterVisit(new AddImport<>(NEEDS_REVIEW_FQN + ".Category", "SEMANTIC_CHANGE", false));
 
             // Build reason message
-            StringBuilder reason = new StringBuilder("ConversationScoped wird zu session gemappt");
+            StringBuilder reason = new StringBuilder("ConversationScoped is mapped to session scope");
             if (info.hasBeginCall || info.hasEndCall) {
-                reason.append(" - explizite begin()/end() vorhanden");
+                reason.append(" - explicit begin()/end() calls detected");
             }
 
             // Build originalCode
@@ -377,9 +377,9 @@ public class MarkJsfForMigration extends ScanningRecipe<MarkJsfForMigration.Accu
             // Build suggestedAction
             String suggestedAction;
             if (info.hasBeginCall || info.hasEndCall) {
-                suggestedAction = "Manuell pruefen: Conversation-Logik in Spring umsetzen oder Session nutzen. begin()/end() muessen manuell behandelt werden.";
+                suggestedAction = "Manual review required: implement conversation boundaries in Spring or use session scope. begin()/end() must be handled manually.";
             } else {
-                suggestedAction = "ConversationScoped wird zu session gemappt - Conversation-Grenzen pruefen. Alternative: @ViewScoped falls kuerzere Lebenszeit ausreicht.";
+                suggestedAction = "ConversationScoped is mapped to session scope; validate conversation boundaries. Alternative: @ViewScoped if a shorter lifecycle is sufficient.";
             }
 
             Space prefix = cd.getLeadingAnnotations().isEmpty()

@@ -20,9 +20,6 @@ recipeList:
   # Generate @NeedsReview annotation class (must run first)
   - com.github.rewrite.ejb.AddNeedsReviewAnnotation
 
-  # Maven POM Migration (adds Spring Boot dependencies based on detected features)
-  - com.github.rewrite.ejb.AddSpringBootDependencies
-
   # Migrate POM packaging from "ejb" to "jar" for Spring Boot
   - com.github.rewrite.ejb.MigrateEjbPackaging
 
@@ -58,6 +55,8 @@ recipeList:
   # Session Bean Migration
   - com.github.rewrite.ejb.MigrateStatelessToService
   - com.github.rewrite.ejb.MigrateSingletonToService
+  # Fix @Service(name=...) → @Service("...") since Spring only supports 'value'
+  - com.github.rewrite.ejb.RenameServiceNameToValue
   - com.github.rewrite.ejb.MigrateStatefulBean
 
   # Concurrency (@AccessTimeout -> @NeedsReview with ReentrantLock/Semaphore guidance)
@@ -132,7 +131,6 @@ recipeList:
   # - rest (default): Generates REST controllers + HttpExchange clients
   # - manual: Adds @NeedsReview markers for manual migration
   - com.github.rewrite.ejb.MigrateRemoteInterfaces
-  - com.github.rewrite.ejb.RemoveJndiNameConstants
 
   # JNDI Constant Cleanup (JUS-003 + JUS-004)
   # JUS-004 removes name attribute from @Stateless/@Singleton/@Stateful (e.g., @Stateless(name = IFoo.JNDI_NAME))
@@ -216,6 +214,10 @@ recipeList:
 
   # Safety gate: prevent MANUAL_MIGRATION beans from loading by default
   - com.github.rewrite.ejb.AddProfileToManualMigrationClasses
+
+  # Maven POM Migration (adds Spring Boot dependencies based on detected features)
+  # MUST run near the end after all migrations that add Spring annotations
+  - com.github.rewrite.ejb.AddSpringBootDependencies
 
   # Generate Migration Report (must run last)
   - com.github.rewrite.ejb.GenerateMigrationReport

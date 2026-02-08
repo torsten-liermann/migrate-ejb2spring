@@ -14,14 +14,13 @@ import java.nio.file.Paths;
 import java.util.*;
 
 /**
- * Einfache Recipe: Entfernt @Component/@Service/@Repository von Test-Stubs
- * und fuegt @NeedsStubReview Annotation hinzu.
+ * Simple recipe: removes @Component/@Service/@Repository from test stubs
+ * and adds a @NeedsStubReview annotation.
  * <p>
- * Dies ist der einfache Ansatz - keine TestConfiguration Generierung,
- * keine @Import Manipulation. Der Entwickler entscheidet selbst ueber
- * weitere Schritte.
+ * This is the minimal approach: no TestConfiguration generation and
+ * no @Import manipulation. Follow-up decisions are left to the developer.
  * <p>
- * Fuer den komplexeren Ansatz mit TestConfiguration Generierung siehe:
+ * For the advanced approach with TestConfiguration generation, see:
  * {@link MigrateTestStubsToTestConfiguration}
  * <p>
  * Transformation:
@@ -31,7 +30,7 @@ import java.util.*;
  * public class ApplicationEventsStub implements ApplicationEvents { }
  *
  * AFTER:
- * &#64;NeedsStubReview("@Component entfernt - manuelle Pruefung erforderlich")
+ * &#64;NeedsStubReview("@Component removed - manual review required")
  * public class ApplicationEventsStub implements ApplicationEvents { }
  * </pre>
  */
@@ -137,7 +136,7 @@ public class RemoveComponentFromTestStubs extends Recipe {
                 if (!hasReviewAnnotation) {
                     maybeAddImport(NEEDS_STUB_REVIEW_FQN);
 
-                    String reviewMessage = "@" + removedAnnotation + " entfernt - manuelle Pruefung erforderlich";
+                    String reviewMessage = "@" + removedAnnotation + " removed - manual review required";
                     JavaTemplate reviewTemplate = JavaTemplate
                             .builder("@NeedsStubReview(\"" + reviewMessage + "\")")
                             .javaParser(JavaParser.fromJavaVersion().dependsOn(NEEDS_STUB_REVIEW_STUB))

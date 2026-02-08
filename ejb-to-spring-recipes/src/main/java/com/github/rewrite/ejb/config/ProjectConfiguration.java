@@ -912,15 +912,15 @@ public class ProjectConfiguration {
         if (clusterMode == ClusterMode.QUARTZ_JDBC) {
             if (timerStrategy != TimerStrategy.QUARTZ) {
                 throw new ConfigurationException(
-                        "cluster: quartz-jdbc erfordert strategy: quartz (aktuell: " +
+                        "cluster: quartz-jdbc requires strategy: quartz (current: " +
                         timerStrategy.name().toLowerCase() + ")");
             }
             return TimerStrategy.QUARTZ;
         }
         if (clusterMode == ClusterMode.SHEDLOCK && timerStrategy == TimerStrategy.QUARTZ) {
             throw new ConfigurationException(
-                    "cluster: shedlock ist nicht kompatibel mit strategy: quartz. " +
-                    "Verwenden Sie cluster: quartz-jdbc fuer Quartz-Cluster-Support.");
+                    "cluster: shedlock is not compatible with strategy: quartz. " +
+                    "Use cluster: quartz-jdbc for Quartz cluster support.");
         }
         return timerStrategy;
     }

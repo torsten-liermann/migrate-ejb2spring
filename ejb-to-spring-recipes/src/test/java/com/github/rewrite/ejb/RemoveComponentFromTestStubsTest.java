@@ -64,7 +64,7 @@ class RemoveComponentFromTestStubsTest implements RewriteTest {
 
 
 
-                @NeedsStubReview("@Component entfernt - manuelle Pruefung erforderlich")
+                @NeedsStubReview("@Component removed - manual review required")
                 public class ApplicationEventsStub {
                     public void onEvent(String event) {
                     }
@@ -96,7 +96,7 @@ class RemoveComponentFromTestStubsTest implements RewriteTest {
 
                 import com.github.migration.NeedsStubReview;
 
-                @NeedsStubReview("@Service entfernt - manuelle Pruefung erforderlich")
+                @NeedsStubReview("@Service removed - manual review required")
                 public class UserServiceMock {
                     public String getUser(int id) {
                         return "Mock User";
@@ -129,7 +129,7 @@ class RemoveComponentFromTestStubsTest implements RewriteTest {
 
                 import com.github.migration.NeedsStubReview;
 
-                @NeedsStubReview("@Repository entfernt - manuelle Pruefung erforderlich")
+                @NeedsStubReview("@Repository removed - manual review required")
                 public class DataRepositoryFake {
                     public Object find(int id) {
                         return "fake";

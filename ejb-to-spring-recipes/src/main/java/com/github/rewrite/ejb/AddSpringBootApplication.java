@@ -72,6 +72,17 @@ public class AddSpringBootApplication extends ScanningRecipe<AddSpringBootApplic
                     if (sourcePath.endsWith("pom.xml")) {
                         String moduleRoot = extractModuleRootFromPom(sourcePath);
 
+                        // Track if we saw any POMs with module prefixes (like "ejb-demo/pom.xml")
+                        if (!moduleRoot.isEmpty()) {
+                            acc.sawSubmodulePoms = true;
+                        }
+
+                        // Detect if this is a submodule run (POM has parent with relativePath to parent dir)
+                        // This happens when running with -pl on a submodule
+                        if (moduleRoot.isEmpty() && hasParentWithRelativePath(doc)) {
+                            acc.isSubmoduleRun = true;
+                        }
+
                         // HIGH fix: Use proper XML tag parsing instead of string matching
                         boolean hasPomPackaging = hasPomPackaging(doc);
                         boolean hasModules = hasModulesElement(doc);
@@ -185,6 +196,43 @@ public class AddSpringBootApplication extends ScanningRecipe<AddSpringBootApplic
             }
         }
         // Default packaging is "jar" when not specified
+        return false;
+    }
+
+    /**
+     * Checks if the POM has a parent element with relativePath pointing to a parent directory.
+     * This indicates the POM is a submodule when seen without a module prefix.
+     */
+    private boolean hasParentWithRelativePath(Xml.Document doc) {
+        Xml.Tag root = doc.getRoot();
+        if (root == null || !"project".equals(getLocalName(root.getName()))) {
+            return false;
+        }
+        if (root.getContent() == null) {
+            return false;
+        }
+        for (Content content : root.getContent()) {
+            if (content instanceof Xml.Tag) {
+                Xml.Tag child = (Xml.Tag) content;
+                if ("parent".equals(getLocalName(child.getName()))) {
+                    // Check for relativePath child element
+                    if (child.getContent() != null) {
+                        for (Content parentContent : child.getContent()) {
+                            if (parentContent instanceof Xml.Tag) {
+                                Xml.Tag parentChild = (Xml.Tag) parentContent;
+                                if ("relativePath".equals(getLocalName(parentChild.getName()))) {
+                                    String value = parentChild.getValue().orElse("").trim();
+                                    // If relativePath starts with ".." it points to parent directory
+                                    return value.startsWith("..");
+                                }
+                            }
+                        }
+                    }
+                    // Parent exists but no explicit relativePath - Maven defaults to ../pom.xml
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -515,6 +563,14 @@ public class AddSpringBootApplication extends ScanningRecipe<AddSpringBootApplic
                 continue;
             }
 
+            // Skip root-level generation if we're running on a submodule with -pl
+            // This prevents generating files at project root when running on a submodule
+            // Detection: POM at "pom.xml" (no module prefix) has a parent with relativePath to parent dir
+            if (moduleRoot.isEmpty() && acc.isSubmoduleRun) {
+                // This is a submodule run - don't generate at root level
+                continue;
+            }
+
             // Get packages for this module
             Set<String> modulePackages = acc.packagesByModule.getOrDefault(moduleRoot, acc.packages);
             if (modulePackages.isEmpty()) {
@@ -811,6 +867,11 @@ public class AddSpringBootApplication extends ScanningRecipe<AddSpringBootApplic
         Map<String, Set<String>> packagesByModule = new HashMap<>();
         Map<String, Path> sourcePathByModule = new HashMap<>();
         Map<String, String> mainSourceRootByModule = new HashMap<>();
+        // Track if we saw POMs with module prefixes (like "ejb-demo/pom.xml")
+        // If this is false but moduleRoots contains "", we might be running on a submodule with -pl
+        boolean sawSubmodulePoms = false;
+        // Track if we detected we're running on a submodule (POM has parent with relativePath to parent dir)
+        boolean isSubmoduleRun = false;
     }
 
     /**

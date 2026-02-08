@@ -28,7 +28,7 @@ import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.maven.Assertions.pomXml;
 
 /**
- * WFQ-004: Timer-Migration vollständig machen oder EJB-API behalten
+ * WFQ-004: Complete timer migration or keep EJB API dependency
  * <p>
  * Tests for {@link ConditionalRemoveEjbApiDependency} which ensures that:
  * <ul>

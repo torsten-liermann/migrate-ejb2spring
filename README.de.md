@@ -2,6 +2,20 @@
 
 Automatisierte Migration von Enterprise JavaBeans (EJB) 3.x zu Spring Boot mittels [OpenRewrite](https://docs.openrewrite.org/).
 
+## Projektstatus und Umsetzungsablauf
+
+Die Implementierung wurde in einem kollaborativen CLI-Ablauf erstellt:
+- Claude Code CLI (Opus 4.6) übernimmt die Implementierung.
+- Codex CLI (ChatGPT Codex 5.3) übernimmt das Review-Gate.
+
+Die Dokumentation unter `docs/chapters` ist die Spezifikationsgrundlage für die Umsetzung.
+
+Der standardisierte Ablauf ist:
+1. Spezifikation in `docs/chapters` erweitern.
+2. Anforderungen mit Claude Code implementieren.
+3. Review-Zyklen mit Codex durchführen, bis der Status `APPROVED` erreicht ist.
+4. Low-Risk-Nice-to-have-Punkte direkt umsetzen, sofern sie zur Spezifikation passen.
+
 ## Quickstart
 
 ```bash
@@ -13,6 +27,8 @@ cd migrate-ejb2spring
 ./mvnw clean install
 
 # Migration auf ejb-demo ausführen
+# Hinweis: Bei Wiederholung zuerst zurücksetzen:
+# git checkout ejb-demo/ && git clean -fd ejb-demo/
 ./mvnw -f migrate validate
 ```
 

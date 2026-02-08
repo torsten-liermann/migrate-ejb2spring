@@ -82,6 +82,13 @@ public class AddJakartaInjectDependency extends ScanningRecipe<AddJakartaInjectD
         "javax.inject.Provider"
     );
 
+    // EJB annotations that will be converted to @Inject when keep-jsr330 strategy is used
+    // This means jakarta.inject-api will be needed after migration
+    private static final Set<String> EJB_ANNOTATIONS = Set.of(
+        "javax.ejb.EJB",
+        "jakarta.ejb.EJB"
+    );
+
     @Option(displayName = "Inject strategy override",
             description = "Override project.yaml inject strategy: keep-jsr330 or migrate-to-spring. " +
                           "If not set, project.yaml (or defaults) are used. Default strategy is keep-jsr330.",
@@ -114,8 +121,12 @@ public class AddJakartaInjectDependency extends ScanningRecipe<AddJakartaInjectD
         boolean needsJakartaInject = false;
         boolean shouldKeepJsr330 = false;
         Set<String> modulesNeedingDependency = new HashSet<>();
-        // WFQ-006: Track modules where JSR-330 dependency already exists
-        Set<String> modulesWithExistingJsr330 = new HashSet<>();
+        // Track modules using jakarta.inject (needs jakarta.inject-api even if javax.inject exists)
+        Set<String> modulesUsingJakartaInject = new HashSet<>();
+        // WFQ-006: Track modules where jakarta.inject-api dependency already exists
+        Set<String> modulesWithExistingJakartaInject = new HashSet<>();
+        // Track modules where legacy javax.inject dependency exists
+        Set<String> modulesWithExistingJavaxInject = new HashSet<>();
     }
 
     @Override
@@ -144,13 +155,25 @@ public class AddJakartaInjectDependency extends ScanningRecipe<AddJakartaInjectD
                         return tree;
                     }
 
-                    // Check imports for JSR-330 annotations
+                    // Check imports for JSR-330 annotations AND @EJB annotations
+                    // @EJB will be converted to @Inject when keep-jsr330 strategy is used,
+                    // so we need jakarta.inject-api for modules with @EJB too
                     for (J.Import imp : cu.getImports()) {
                         String importPath = imp.getQualid().toString();
                         if (JSR330_ANNOTATIONS.contains(importPath)) {
                             acc.needsJakartaInject = true;
                             acc.modulesNeedingDependency.add(modulePath);
-                            return tree;
+                            // Track if jakarta.inject is used (needs jakarta.inject-api)
+                            if (importPath.startsWith("jakarta.inject.")) {
+                                acc.modulesUsingJakartaInject.add(modulePath);
+                            }
+                        }
+                        // @EJB will be converted to @Inject (jakarta.inject) after migration
+                        if (EJB_ANNOTATIONS.contains(importPath)) {
+                            acc.needsJakartaInject = true;
+                            acc.modulesNeedingDependency.add(modulePath);
+                            // @EJB → @Inject uses jakarta.inject namespace
+                            acc.modulesUsingJakartaInject.add(modulePath);
                         }
                     }
 
@@ -162,6 +185,15 @@ public class AddJakartaInjectDependency extends ScanningRecipe<AddJakartaInjectD
                                 if (TypeUtils.isOfClassType(annotation.getType(), jsr330Ann)) {
                                     acc.needsJakartaInject = true;
                                     acc.modulesNeedingDependency.add(modulePath);
+                                    break;
+                                }
+                            }
+                            // Also check for @EJB annotations
+                            for (String ejbAnn : EJB_ANNOTATIONS) {
+                                if (TypeUtils.isOfClassType(annotation.getType(), ejbAnn)) {
+                                    acc.needsJakartaInject = true;
+                                    acc.modulesNeedingDependency.add(modulePath);
+                                    acc.modulesUsingJakartaInject.add(modulePath);
                                     break;
                                 }
                             }
@@ -184,18 +216,22 @@ public class AddJakartaInjectDependency extends ScanningRecipe<AddJakartaInjectD
                                     // Check declared dependencies only (effective POM = direct + inherited from parent)
                                     // Note: dependencyManagement-only does NOT count as existing - it only provides versioning
                                     for (org.openrewrite.maven.tree.Dependency dep : mrr.getPom().getRequestedDependencies()) {
-                                        if (isJsr330Dependency(dep.getGroupId(), dep.getArtifactId())) {
-                                            acc.modulesWithExistingJsr330.add(modulePath);
-                                            return document;
+                                        if (isJakartaInjectApi(dep.getGroupId(), dep.getArtifactId())) {
+                                            acc.modulesWithExistingJakartaInject.add(modulePath);
+                                        } else if (isJavaxInject(dep.getGroupId(), dep.getArtifactId())) {
+                                            acc.modulesWithExistingJavaxInject.add(modulePath);
                                         }
                                     }
                                 }
                                 return document;
                             }
 
-                            private boolean isJsr330Dependency(String groupId, String artifactId) {
-                                return (JAKARTA_INJECT_GROUP_ID.equals(groupId) && JAKARTA_INJECT_ARTIFACT_ID.equals(artifactId))
-                                    || (JAVAX_INJECT_GROUP_ID.equals(groupId) && JAVAX_INJECT_ARTIFACT_ID.equals(artifactId));
+                            private boolean isJakartaInjectApi(String groupId, String artifactId) {
+                                return JAKARTA_INJECT_GROUP_ID.equals(groupId) && JAKARTA_INJECT_ARTIFACT_ID.equals(artifactId);
+                            }
+
+                            private boolean isJavaxInject(String groupId, String artifactId) {
+                                return JAVAX_INJECT_GROUP_ID.equals(groupId) && JAVAX_INJECT_ARTIFACT_ID.equals(artifactId);
                             }
                         }.visit(doc, ctx);
                     }
@@ -259,8 +295,16 @@ public class AddJakartaInjectDependency extends ScanningRecipe<AddJakartaInjectD
                     return tree;
                 }
 
-                // WFQ-006: Skip if JSR-330 dependency already exists (jakarta.inject-api or javax.inject)
-                if (acc.modulesWithExistingJsr330.contains(modulePath)) {
+                // WFQ-006: Skip if jakarta.inject-api already exists
+                if (acc.modulesWithExistingJakartaInject.contains(modulePath)) {
+                    return tree;
+                }
+
+                // Skip if module uses ONLY javax.inject namespace AND javax.inject exists
+                // javax.inject is sufficient for javax.inject namespace, but NOT for jakarta.inject
+                boolean usesJakartaInject = acc.modulesUsingJakartaInject.contains(modulePath);
+                boolean hasJavaxInject = acc.modulesWithExistingJavaxInject.contains(modulePath);
+                if (!usesJakartaInject && hasJavaxInject) {
                     return tree;
                 }
 

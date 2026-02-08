@@ -47,7 +47,7 @@ import java.util.*;
  * This recipe scans the codebase for remaining EJB Timer-related types and annotations.
  * If any Timer types or annotations remain, the EJB-API dependency is kept to ensure compilation.
  * <p>
- * WFQ-004: Timer-Migration vollständig machen oder EJB-API behalten
+ * WFQ-004: Complete timer migration or keep EJB API dependency
  * <p>
  * Timer types that block removal:
  * <ul>

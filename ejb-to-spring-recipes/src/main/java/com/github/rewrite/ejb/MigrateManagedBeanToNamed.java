@@ -267,15 +267,15 @@ public class MigrateManagedBeanToNamed extends Recipe {
             doAfterVisit(new AddImport<>(NEEDS_REVIEW_FQN + ".Category", "MANUAL_MIGRATION", false));
 
             String originalCode = String.join(", ", managedProperties);
-            String suggestedAction = "Manuell migrieren: @ManagedProperty(#{beanName}) -> @Inject BeanType; " +
-                                     "EL-Expressions wie #{param.x} manuell behandeln";
+            String suggestedAction = "Manual migration required: @ManagedProperty(#{beanName}) -> @Inject BeanType; " +
+                                     "handle EL expressions such as #{param.x} manually";
 
             Space prefix = cd.getLeadingAnnotations().isEmpty()
                 ? cd.getPrefix()
                 : cd.getLeadingAnnotations().get(0).getPrefix();
 
             J.Annotation needsReviewAnn = createNeedsReviewAnnotation(
-                "@ManagedProperty erfordert manuelle CDI-Migration",
+                "@ManagedProperty requires manual CDI migration",
                 "MANUAL_MIGRATION",
                 originalCode,
                 suggestedAction,
@@ -386,10 +386,10 @@ public class MigrateManagedBeanToNamed extends Recipe {
                 : cd.getLeadingAnnotations().get(0).getPrefix();
 
             J.Annotation needsReviewAnn = createNeedsReviewAnnotation(
-                "ManagedBean(eager=true) hat keine direkte CDI-Entsprechung",
+                "ManagedBean(eager=true) has no direct CDI equivalent",
                 "SEMANTIC_CHANGE",
                 "@ManagedBean(eager=true)",
-                "Pruefe: @PostConstruct + CommandLineRunner oder ApplicationListener fuer Startup-Logik",
+                "Review: use @PostConstruct plus CommandLineRunner or ApplicationListener for startup logic",
                 prefix
             );
 

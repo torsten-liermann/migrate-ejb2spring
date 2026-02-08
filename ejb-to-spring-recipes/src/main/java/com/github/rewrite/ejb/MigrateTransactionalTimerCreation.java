@@ -35,23 +35,23 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Migrates EJB Timer creation in @Transactional methods to Spring's event-driven pattern.
  * <p>
- * EJB Timer-Erstellung ist transaktional (Timer wird nur bei TX-Commit erstellt).
- * Spring Scheduling ist nicht transaktional. Diese Recipe migriert zu einem Event-basierten
- * Pattern mit @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT).
+ * EJB timer creation is transactional (timer is created only after TX commit).
+ * Spring scheduling is not transactional. This recipe migrates to an event-driven
+ * pattern with @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT).
  * <p>
  * Transformation:
  * <pre>
- * // EJB Original (in @Transactional Methode)
+ * // Original EJB code (inside @Transactional method)
  * @Transactional
  * public void businessMethod() {
- *     // ... Business-Logik
+ *     // ... business logic
  *     timerService.createTimer(5000, "myInfo");
  * }
  *
- * // Migriert
+ * // Migrated
  * @Transactional
  * public void businessMethod() {
- *     // ... Business-Logik
+ *     // ... business logic
  *     eventPublisher.publishEvent(new TimerCreateEvent(
  *         this, 5000, 0, "myInfo", true, "MyBean.timeout"));
  * }

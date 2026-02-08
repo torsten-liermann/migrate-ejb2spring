@@ -123,15 +123,18 @@ public class AddSpringBootDependencies extends ScanningRecipe<AddSpringBootDepen
     );
 
     // JAX-RS/Web annotations → spring-boot-starter-web
+    // Also includes @Remote as it triggers REST controller generation
     private static final Set<String> WEB_ANNOTATIONS = Set.of(
         "jakarta.ws.rs.Path",
         "jakarta.ws.rs.GET",
         "jakarta.ws.rs.POST",
         "jakarta.ws.rs.PUT",
         "jakarta.ws.rs.DELETE",
+        "jakarta.ejb.Remote",
         "javax.ws.rs.Path",
         "javax.ws.rs.GET",
-        "javax.ws.rs.POST"
+        "javax.ws.rs.POST",
+        "javax.ejb.Remote"
     );
 
     // CDI Scope annotations → spring-web (NOT spring-boot-starter-web)
@@ -314,7 +317,7 @@ public class AddSpringBootDependencies extends ScanningRecipe<AddSpringBootDepen
                 // 1. Add Spring Boot BOM to dependency management (root POM only)
                 if (!acc.hasSpringBootBom) {
                     // AddManagedDependency: groupId, artifactId, version, scope, type,
-                    // classifier, versionPattern, releasesOnly, onlyIfUsing, addToRootPom, because
+                    // classifier, versionPattern, releasesOnly, onlyIfUsing, addToRootPom
                     // addToRootPom=true ensures BOM is only in root pom.xml, child POMs inherit it
                     // This prevents version drift from multiple BOM declarations
                     tree = new AddManagedDependency(
@@ -327,8 +330,7 @@ public class AddSpringBootDependencies extends ScanningRecipe<AddSpringBootDepen
                         null,  // versionPattern
                         null,  // releasesOnly
                         null,  // onlyIfUsing
-                        true,  // addToRootPom - only add to root pom.xml
-                        null   // because
+                        true   // addToRootPom - only add to root pom.xml
                     ).getVisitor().visit(tree, ctx);
                 }
 

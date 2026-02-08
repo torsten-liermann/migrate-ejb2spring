@@ -15,7 +15,7 @@
 
     <properties>
         <!-- Rewrite versions (same as .gitlab-ci.yml) -->
-        <rewrite.plugin.version>5.48.0</rewrite.plugin.version>
+        <rewrite.plugin.version>6.12.0</rewrite.plugin.version>
         <ejb.recipes.version>1.0.0-SNAPSHOT</ejb.recipes.version>
 
         <exec-maven-plugin.version>3.5.0</exec-maven-plugin.version>
@@ -26,6 +26,10 @@
     Usage:
       ./mvnw -f migrate validate        (direct)
       ./mvnw -P migrate validate        (via aggregator profile)
+
+    PRECONDITION:
+      The ejb-demo module must be in its original EJB state (not already migrated).
+      If previously migrated, reset first: git checkout ejb-demo/ && git clean -fd ejb-demo/
 
     Runs complete EJB to Spring migration on ejb-demo module:
       - @Stateless -> @Service

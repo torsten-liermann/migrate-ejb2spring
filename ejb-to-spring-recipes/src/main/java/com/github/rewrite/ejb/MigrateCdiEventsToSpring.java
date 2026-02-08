@@ -61,14 +61,14 @@ public class MigrateCdiEventsToSpring extends Recipe {
 
         @Override
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-            // Reset tracking fuer diese Datei
+            // Reset tracking for this file
             transformedEvent = false;
             transformedObserves = false;
 
             J.CompilationUnit result = super.visitCompilationUnit(cu, ctx);
 
-            // Nach Transformation explizit Imports entfernen
-            // (doAfterVisit umgeht das "unknown types" Problem von RemoveUnusedImports)
+            // Explicitly remove imports after transformation
+            // (doAfterVisit bypasses the "unknown types" problem of RemoveUnusedImports)
             if (transformedEvent) {
                 doAfterVisit(new RemoveImport<>(EVENT_FQN, true));
             }
@@ -95,12 +95,12 @@ public class MigrateCdiEventsToSpring extends Recipe {
                         transformedEvent = true;
 
                         // Create new identifier with correct type
-                        // WICHTIG: Prefix vom ParameterizedType verwenden, nicht vom inneren Identifier!
-                        // Der Prefix des ParameterizedType enthält den Whitespace vor dem Typ (z.B. nach "private ")
+                        // IMPORTANT: Use prefix from ParameterizedType, not from inner Identifier!
+                        // The ParameterizedType prefix contains the whitespace before the type (e.g., after "private ")
                         JavaType.ShallowClass publisherType = JavaType.ShallowClass.build(PUBLISHER_FQN);
                         J.Identifier newClazz = new J.Identifier(
                             Tree.randomId(),
-                            pt.getPrefix(),  // Prefix vom ParameterizedType, nicht clazz.getPrefix()!
+                            pt.getPrefix(),  // Prefix from ParameterizedType, not clazz.getPrefix()!
                             Markers.EMPTY,
                             Collections.emptyList(),
                             "ApplicationEventPublisher",
@@ -136,13 +136,13 @@ public class MigrateCdiEventsToSpring extends Recipe {
         }
 
         private boolean isEventType(J.Identifier ident) {
-            // KRITISCH: TypeUtils zuerst pruefen (sicher)
-            // SimpleName-Check kann False-Positives erzeugen (z.B. java.awt.Event)
+            // CRITICAL: Check TypeUtils first (safe)
+            // SimpleName check can produce false positives (e.g., java.awt.Event)
             if (ident.getType() != null) {
                 return TypeUtils.isOfClassType(ident.getType(), EVENT_FQN);
             }
-            // Fallback auf SimpleName nur wenn keine Typ-Information verfuegbar
-            // (sollte bei korrekter LST-Aufbau selten vorkommen)
+            // Fallback to SimpleName only when no type information is available
+            // (should rarely occur with correct LST construction)
             return "Event".equals(ident.getSimpleName());
         }
 
