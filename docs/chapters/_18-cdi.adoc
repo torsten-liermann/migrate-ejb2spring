@@ -11,7 +11,8 @@ CDI‑`@Alternative` and `@Specializes` are declarative mechanisms for selecting
 CDI knows `@ObservesAsync` for asynchronous event processing and a defined delivery order within the CDI infrastructure. Spring differentiates between synchronous listeners and explicitly asynchronous listeners (`@Async`), where execution depends on the task executor. These differences must be taken into account during migration if event sequences or transaction boundaries are technically relevant.
 === Example
 .Example: BEFORE (CDI)
-[source, java]----
+[source, java]
+----
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import javax.enterprise.context.ApplicationScoped;
@@ -29,7 +30,8 @@ public class CargoEventPublisher {
 ----
 
 .Example: AFTER (Spring Boot)
-[source, java]----
+[source, java]
+----
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 

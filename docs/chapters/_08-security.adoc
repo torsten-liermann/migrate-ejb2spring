@@ -1,6 +1,7 @@
 == Security
 EJB security is declaratively embedded in the container model. Roles, run-as semantics and access control are implemented by the application server and are closely linked to the identity and context model. In Spring Boot, the same specialized logic is typically secured via Spring Security, but with a different model for expressions, role names, and context propagation. A migration must therefore check both the annotations and the semantic evaluation.
-.Specification references****
+.Specification references
+****
 * https://jakarta.ee/specifications/security/3.0/jakarta-security-spec-3.0.html[Jakarta Security 3.0 Spec]
 * https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#a1593[Jakarta EJB 4.0 Spec - §10.6 Security]
 * https://jakarta.ee/specifications/annotations/2.1/jakarta-annotations-spec-2.1.html#declaresroles[Jakarta Annotations 2.1 - @DeclareRoles]
@@ -10,7 +11,8 @@ EJB security is declaratively embedded in the container model. Roles, run-as sem
 === Role-based access
 EJB works with `@RolesAllowed`, `@PermitAll` and `@DenyAll`. In Spring Security this corresponds to Method Security with `@PreAuthorize` or `@Secured`. `@PreAuthorize` allows SpEL expressions that evaluate parameters and security context.
 .Example: BEFORE (EJB)
-[source, java]----
+[source, java]
+----
 import javax.annotation.security.RolesAllowed;
 import javax.annotation.security.PermitAll;
 import javax.annotation.security.DenyAll;
@@ -38,7 +40,8 @@ public class CustomerAccountService {
 ----
 
 .Example: AFTER (Spring Boot)
-[source, java]----
+[source, java]
+----
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
@@ -72,7 +75,8 @@ In WildFly/EAP, roles are often assigned via security domains or Elytron configu
 EJB calls within the same container propagate security context. In Spring, this depends on the mechanism chosen, such as asynchronous processing or messaging. With `@Async` or `@JmsListener` it must be checked whether a SecurityContext exists and whether it is actively propagated.
 By default, the security context is not automatically propagated for WebSocket handlers and scheduled jobs. If the EJB code relies on `SessionContext.getCallerPrincipal()` or `isCallerInRole()`, a technical alternative must be defined for these execution paths.
 === Automated migration
-[cols="1.3"]|===
+[cols="1.3"]
+|===
 | Name | Description
 
 | `com.github.rewrite.ejb.RemoveJBossSecurityDomain`

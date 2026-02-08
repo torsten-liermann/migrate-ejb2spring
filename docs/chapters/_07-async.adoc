@@ -2,7 +2,8 @@
 EJB `@Asynchronous` delegates execution to the container. The container manages threads, security context and (depending on configuration) transaction context. In Spring, `@Async` takes on a similar role, but works via proxies and a `TaskExecutor`. Self-calls within the same class remain synchronous, and context propagation (Security, MDC, Transactions) must be checked explicitly.
 === @Asynchronous -> @Async
 .Example: BEFORE (EJB)
-[source, java]----
+[source, java]
+----
 import javax.ejb.Stateless;
 import javax.ejb.Asynchronous;
 import java.util.concurrent.Future;
@@ -16,9 +17,11 @@ public class NotificationService {
         DispatchResult result = executeDispatch(command);
         return new AsyncResult<>(result);
     }
-}----
+}
+----
 .Example: AFTER (Spring Boot)
-[source, java]----
+[source, java]
+----
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
@@ -33,25 +36,30 @@ public class NotificationService {
         DispatchResult result = executeDispatch(command);
         return CompletableFuture.completedFuture(result);
     }
-}----
+}
+----
 
 .Example: Configuration (Spring Boot)
-[source, java]----
+[source, java]
+----
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 @Configuration
 @EnableAsync
 public class AsyncConfiguration {
-}----
+}
+----
 
-[WARNING]====
+[WARNING]
+====
 `@Async` only works via Spring proxies. Calls within the same class remain synchronous. ThreadLocals (Security Context, MDC) must be explicitly propagated.
 ====
 
 === Custom Executor
 In EJB, the thread pool is provided by the container. In Spring, an explicit `TaskExecutor` should be configured if specialist processes require separate resources.
 .Example: Executor configuration
-[source, java]----
+[source, java]
+----
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -75,28 +83,35 @@ public class AsyncConfig {
 ----
 
 .Example: Using the executor
-[source, java]----
+[source, java]
+----
 @Service
 public class DispatchService {
 @Async("dispatchExecutor")
     public CompletableFuture<DispatchResult> dispatch(DispatchCommand command) {
     }
-}----
+}
+----
 === Automated migration
-[cols="1.3"]|===
+[cols="1.3"]
+|===
 | Name | `de.example.rewrite.ejb.MigrateAsynchronousToAsync`
 | Description | Transforms `@Asynchronous` to `@Async`.
-| Configuration | no|===
+| Configuration | no
+|===
 
-[cols="1.3"]|===
+[cols="1.3"]
+|===
 | Name | `de.example.rewrite.ejb.MigrateAsyncResultToCompletableFuture`
 | Description | Transforms `AsyncResult<T>` to `CompletableFuture<T>`.
 | Configuration | none
 |===
 
-[cols="1.3"]|===
+[cols="1.3"]
+|===
 | Name | `de.example.rewrite.ejb.MigrateAsync`
 | Description | Combines `MigrateAsynchronousToAsync`, `MigrateAsyncResultToCompletableFuture` and `AddEnableJmsAndScheduling`.
-| Configuration | no|===
+| Configuration | no
+|===
 
 ---

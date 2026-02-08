@@ -1,10 +1,12 @@
 == JCA (Java Connector Architecture)
 JCA connectors are a container feature that standardizes resource adapters, connection management, and transactional integration. The migration includes evaluating existing connectors, their JNDI bindings and the integration paths in the target system.
-.Specification references****
+.Specification references
+****
 * https://jakarta.ee/specifications/connectors/2.1/jakarta-connectors-spec-2.1.html[Jakarta Connectors 2.1 Spec]
 * https://jakarta.ee/specifications/connectors/2.1/jakarta-connectors-spec-2.1.html#a512[Jakarta Connectors 2.1 - §5 Contracts]
 * https://jakarta.ee/specifications/connectors/2.1/jakarta-connectors-spec-2.1.html#a1027[Jakarta Connectors 2.1 - §7 Transaction Management]
-* https://docs.spring.io/spring-framework/reference/integration/jca.html[Spring Framework - JCA CCI Support]****
+* https://docs.spring.io/spring-framework/reference/integration/jca.html[Spring Framework - JCA CCI Support]
+****
 
 === Typical applications
 If JCA is used in the system, the associated JNDI names, adapter configurations and transaction requirements must be collected before a target technology is determined.
@@ -12,7 +14,8 @@ If JCA is used in the system, the associated JNDI names, adapter configurations 
 In Spring Boot, integration is implemented via specific starters, adapter libraries or explicit client configurations. Where possible, transactional boundaries should be supported by the target system. If transactional integration is not available, the business logic must be secured with compensation steps or idempotence strategies.
 === Checkpoints for the project
 Before migration, the existing JCA resources must be collected:
-[cols="1.3"]|===
+[cols="1.3"]
+|===
 | aspect | Test
 
 | Adapter configuration
@@ -32,7 +35,8 @@ Before migration, the existing JCA resources must be collected:
 |===
 
 === Typical migration paths
-[cols="1,2,2"]|===
+[cols="1,2,2"]
+|===
 | JCA Adapter | Spring Alternative | Note
 
 | JMS Adapter
@@ -51,4 +55,3 @@ Before migration, the existing JCA resources must be collected:
 | Spring Integration or direct client library
 | Project-specific analysis required
 |===
-

@@ -2,7 +2,8 @@
 Jakarta Concurrency provides container managed executor services (`ManagedExecutorService`, `ManagedScheduledExecutorService`). These services ensure context propagation and lifecycle management. No identical model exists in Spring Boot; Instead, `TaskExecutor`, `TaskScheduler` or your own executor beans are used.
 === ManagedExecutorService
 .Example: BEFORE (Jakarta Concurrency)
-[source, java]----
+[source, java]
+----
 import javax.annotation.Resource;
 import javax.enterprise.concurrent.ManagedExecutorService;
 
@@ -18,7 +19,8 @@ public class DocumentPipeline {
 ----
 
 .Example: AFTER (Spring Boot)
-[source, java]----
+[source, java]
+----
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
 

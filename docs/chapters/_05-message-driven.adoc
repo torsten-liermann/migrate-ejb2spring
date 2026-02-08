@@ -2,7 +2,8 @@
 Message-Driven Beans (MDB) are EJBs for asynchronous message input. They are container-managed, configured via activation properties and run in a JMS context with transactions and redelivery semantics. In Spring this is represented by `@JmsListener` and listener container configuration. The semantics are similar, but not identical: configuration, redelivery strategy, acknowledge mode and error handling must be explicitly checked.
 === @MessageDriven -> @Component + @JmsListener
 .Example: BEFORE (EJB)
-[source, java]----
+[source, java]
+----
 import javax.ejb.MessageDriven;
 import javax.ejb.ActivationConfigProperty;
 import javax.jms.Message;
@@ -26,10 +27,12 @@ public class ShipmentListener implements MessageListener {
             shipmentService.register(cmd);
         }
     }
-}----
+}
+----
 
 .Example: AFTER (Spring Boot)
-[source, java]----
+[source, java]
+----
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,12 +54,15 @@ public class ShipmentListener {
 }
 ----
 
-[NOTE]====
-The MDB activation properties must be mapped to listener container properties in Spring (Destination, Selector, Concurrency, Ack-Mode, Subscription). The exact keys vary depending on the provider and must be checked against the messaging infrastructure.====
+[NOTE]
+====
+The MDB activation properties must be mapped to listener container properties in Spring (Destination, Selector, Concurrency, Ack-Mode, Subscription). The exact keys vary depending on the provider and must be checked against the messaging infrastructure.
+====
 
 The EJB specification allows additional activation properties such as `clientId`, `subscriptionDurability` and `messageSelector`. These values ​​are only effective in Spring if they are transferred to the concrete listener container configuration. A pure annotation migration without container configuration changes the runtime behavior.
 .Example: application.yml
-[source,yaml]----
+[source,yaml]
+----
 spring:
   jms:
     listener:
@@ -68,7 +74,8 @@ spring:
 EJB implements redelivery via transaction rollback and container strategies. Spring also uses transactions, but the redelivery strategy depends on the listener container and provider used.
 The EJB specification describes that runtime exceptions in a message-driven bean transfer the bean instance to the “does not exist” state. `@PreDestroy` is not guaranteed in this case. Resources that are opened in `@PostConstruct` must therefore be managed in such a way that the failure of individual instances does not cause leaks.
 .Example: BEFORE (EJB)
-[source, java]----
+[source, java]
+----
 import javax.ejb.MessageDriven;
 import javax.ejb.ActivationConfigProperty;
 import javax.annotation.Resource;
@@ -96,7 +103,8 @@ public class InvoiceListener implements MessageListener {
 ----
 
 .Example: AFTER (Spring Boot)
-[source, java]----
+[source, java]
+----
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -112,17 +120,21 @@ public class InvoiceListener {
 }
 ----
 
-[WARNING]====
+[WARNING]
+====
 Redelivery backoff, dead letter queues and acknowledge strategies are provider-dependent. The migration must explicitly check these settings and must not rely on default behavior.
 ====
 
 === Automated migration
-[cols="1.3"]|===
+[cols="1.3"]
+|===
 | Name | `de.example.rewrite.ejb.MigrateMessageDrivenToJmsListener`
 | Description | Transforms `@MessageDriven` to `@Component` with `@JmsListener` on `onMessage` method.
-| Configuration | no|===
+| Configuration | no
+|===
 
-[cols="1.3"]|===
+[cols="1.3"]
+|===
 | Name | `de.example.rewrite.ejb.MigrateMessaging`
 | Description | Combines `MigrateMessageDrivenToJmsListener` and `AddEnableJmsAndScheduling`.
 | Configuration | none

@@ -1,6 +1,7 @@
 == Quick reference
 This chapter summarizes common migrations as a brief orientation. The detailed explanations can be found in the thematic chapters.
-[cols="2,2,3"]|===
+[cols="2,2,3"]
+|===
 | Jakarta EE | Spring Boot | Note
 | `@Stateless`
 | `@Service`
@@ -34,4 +35,5 @@ This chapter summarizes common migrations as a brief orientation. The detailed e
 | Check annotations and serialization
 | JNDI Lookup
 | `@ConfigurationProperties`
-| Transfer values ​​to `application.properties`|===
+| Transfer values ​​to `application.properties`
+|===

@@ -4,7 +4,8 @@ EJB applications often include resources using JNDI names, such as DataSources, 
 JNDI names reflect the container configuration. They need to be translated into concrete property names in Spring Boot. For DataSources this is usually `spring.datasource.*`, for JMS destinations it is often a separate `@ConfigurationProperties` class.
 In the project, JNDI lookups are recognized by the recipes and marked with `@NeedsReview`. The specific assignment to properties depends on the existing server configuration and must be validated on a project-specific basis.
 .Example: BEFORE (EJB)
-[source, java]----
+[source, java]
+----
 import javax.annotation.Resource;
 import javax.sql.DataSource;
 
@@ -16,7 +17,8 @@ public class BillingRepository {
 ----
 
 .Example: AFTER (Spring Boot)
-[source, java]----
+[source, java]
+----
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -32,7 +34,8 @@ public class BillingRepository {
 
 The actual linking takes place via configuration:
 .Example: application.properties
-[source, properties]----
+[source, properties]
+----
 spring.datasource.url=jdbc:postgresql://localhost:5432/billing
 spring.datasource.username=billing
 spring.datasource.password=secret

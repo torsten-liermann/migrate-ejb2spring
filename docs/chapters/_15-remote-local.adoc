@@ -6,10 +6,13 @@ Local interfaces are used in the same module and can usually be replaced directl
 There is no corresponding container remoting in Spring for `@Remote` beans. The target architecture must explicitly specify whether remote calls are mapped as HTTP-based RPC calls, REST APIs, messaging or gRPC. EJB-specific features such as pass-through security or declarative transactions across remote boundaries must be explicitly modeled in Spring.
 === Options for @Remote alternatives (as of 2026-01-23)
 The following options are considered alternatives to EJB Remote. The metrics come from the respective GitHub repositories (license, releases, contributor statistics) and are documented with a time stamp.
-[NOTE]====
-Data status: 2026-01-23. “Releases (12M)” is based on GitHub releases from the last 12 months. “Active Committers (52W)” is based on GitHub `stats/contributors`. If GitHub does not provide the statistics, the value is marked as "n/a".====
+[NOTE]
+====
+Data status: 2026-01-23. “Releases (12M)” is based on GitHub releases from the last 12 months. “Active Committers (52W)” is based on GitHub `stats/contributors`. If GitHub does not provide the statistics, the value is marked as "n/a".
+====
 
-[cols="2,3,1,1,1,1,2"]|===
+[cols="2,3,1,1,1,1,2"]
+|===
 | option | GitHub URL | License | Releases (12M) | Latest release | Active Committers (52W) | Proximity to HttpInvoker/IIOP
 
 | Apache Dubbo (Triple)
@@ -133,7 +136,8 @@ OpenAPI is not automatically generated. The openapi generator generates code fro
 === Example
 In EJB, remote calls are defined using an interface:
 .Example: BEFORE (EJB)
-[source, java]----
+[source, java]
+----
 import javax.ejb.Remote;
 
 @Remote
@@ -144,7 +148,8 @@ public interface BookingGateway {
 
 Instead, an explicit API layer is created in Spring:
 .Example: AFTER (Spring Boot)
-[source, java]----
+[source, java]
+----
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -169,13 +174,15 @@ public class BookingGatewayController {
 The migration of `@Remote` interfaces is supported by several recipes. The strategy is over
 `project.yaml` controlled.
 ==== Configuration (project.yaml)
-[source,yaml]----
+[source,yaml]
+----
 migration:
   remote:
     strategy: rest   # or: manual
 ----
 
-[cols="1,2,2"]|===
+[cols="1,2,2"]
+|===
 | Wert | Description | Generated artifacts
 
 | `rest` (Default)
@@ -190,7 +197,8 @@ migration:
 ==== Strategy: REST (default)
 The REST strategy generates a complete RPC-like API over HTTP:
 ===== Generated artifacts
-[cols="2.3"]|===
+[cols="2.3"]
+|===
 | Artifact | Description
 
 | `{Interface}RestController`
@@ -208,7 +216,8 @@ The REST strategy generates a complete RPC-like API over HTTP:
 
 ===== Path schema
 Individual methods get the path `/api/{Interface}/{method}`:
-[source, java]----
+[source, java]
+----
 @PostMapping("/api/SearchService/findById")
 public Result findById(@RequestBody SearchByIdRequest request) { ... }
 ----
@@ -216,7 +225,8 @@ public Result findById(@RequestBody SearchByIdRequest request) { ... }
 ===== Overloaded methods (overloads)
 For overloaded methods (same name, different parameters) a numeric suffix is used
 appended to the path:
-[source, java]----
+[source, java]
+----
 // Interface: void search(String query)
 //            void search(String query, int limit)
 //            void search(SearchFilter filter)
@@ -226,7 +236,8 @@ appended to the path:
 @PostMapping("/api/SearchService/search/3")  // search(SearchFilter)
 ----
 
-[IMPORTANT]====
+[IMPORTANT]
+====
 Numbering is based on the **order in the source file** (source order).
 Changing method order in the interface changes the generated paths.
 This can break existing clients.
@@ -235,7 +246,8 @@ This can break existing clients.
 ===== DTO naming scheme
 DTOs are generated when a method has more than one parameter or the parameter
 a primitive type is:
-[cols="2,2"]|===
+[cols="2,2"]
+|===
 | Method | DTO name
 | `findById(Long id)` (not overloaded)
 | `FindByIdRequest`
@@ -246,9 +258,11 @@ a primitive type is:
 | `search(SearchFilter filter)` (Overload 3)
 | `Search3Request`
 | `process(String name, Item... items)`
-| `ProcessRequest` (Varargs als `Item[]`)|===
+| `ProcessRequest` (Varargs als `Item[]`)
+|===
 
-[NOTE]====
+[NOTE]
+====
 For overloaded methods, **all** variants receive numbering (`Search1Request`,
 `Search2Request`, ...), not only the second and subsequent ones.
 ====
@@ -257,13 +271,15 @@ Varargs parameters are stored in DTOs as an array type (`Item[]` instead of `Ite
 ===== Client configuration
 The generated client requires a base URL, which is configured via properties.
 The property name follows the pattern `{interfaceName}.baseUrl` (camelCase):
-[source, properties]----
+[source, properties]
+----
 # application.properties
 searchService.baseUrl=http://localhost:8080
 ----
 
 The configuration class reads this property:
-[source, java]----
+[source, java]
+----
 @Configuration
 public class SearchServiceClientConfig {
     @Value("${searchService.baseUrl}")
@@ -286,7 +302,8 @@ If there are no or multiple matching implementations, a controller stub is inclu
 ==== Strategy: Manual
 The manual strategy is intended for cases where automatic REST generation
 is not suitable (e.g. complex security requirements, gRPC migration).
-[source,yaml]----
+[source,yaml]
+----
 migration:
   remote:
     strategy: manual
@@ -297,7 +314,8 @@ The recipe `MigrateRemoteToMarker`:
 * **Adds** `@NeedsReview(category = REMOTE_ACCESS)`
 * **Does not generate** controllers or clients
 .Example: Manual strategy
-[source, java]----
+[source, java]
+----
 // BEFORE
 @Remote
 public interface PaymentGateway { ... }

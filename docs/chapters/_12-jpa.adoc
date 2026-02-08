@@ -3,7 +3,8 @@ JPA is often included in EJB applications through persistence.xml, @PersistenceC
 === EntityManager injection
 EJB uses `@PersistenceContext` and gets a container managed `EntityManager`. In Spring, the `EntityManager` can still be injected via `@PersistenceContext`, but Spring data repositories are also available to simplify access.
 .Example: BEFORE (EJB)
-[source, java]----
+[source, java]
+----
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.ejb.Stateless;
@@ -21,7 +22,8 @@ public class BookingRepository {
 ----
 
 .Example: AFTER (Spring Boot)
-[source, java]----
+[source, java]
+----
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
@@ -47,13 +49,15 @@ The following applies to the standard case: The transaction-scoped persistence c
 === Transaction limits
 EJB uses container-managed transactions and determines context per method call. In Spring this is done via `@Transactional`. The transaction behavior only remains identical if the propagation and rollback rules are transferred cleanly. Additionally, the proxy model affects internal method calls: a `@Transactional` method called internally by the same class will not start a new transaction.
 === Automated migration
-[cols="1.3"]|===
+[cols="1.3"]
+|===
 | Name | `de.example.rewrite.ejb.MigratePersistenceXmlToProperties`
 | Description | Extracts JPA configuration from `persistence.xml` and creates `application.properties`.
 | Configuration | no
 |===
 
-[cols="1.3"]|===
+[cols="1.3"]
+|===
 | Name | `de.example.rewrite.ejb.MigratePersistence`
 | Description | Combines all persistence recipes.
 | Configuration | none

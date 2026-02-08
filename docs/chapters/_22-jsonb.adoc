@@ -3,7 +3,8 @@ JSON-B is the standard JSON binding specification in Jakarta EE. Spring Boot use
 === Annotations and mapping
 JSON-B annotations like `@JsonbProperty` can be transferred to `@JsonProperty` in most cases. `@JsonbDateFormat`, `@JsonbTypeAdapter` and visibility rules for properties require special attention.
 .Example: BEFORE (JSON-B)
-[source, java]----
+[source, java]
+----
 import javax.json.bind.annotation.JsonbProperty;
 import javax.json.bind.annotation.JsonbDateFormat;
 
@@ -18,7 +19,8 @@ public class ShipmentSnapshot {
 ----
 
 .Example: AFTER (Jackson)
-[source, java]----
+[source, java]
+----
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonFormat;
 

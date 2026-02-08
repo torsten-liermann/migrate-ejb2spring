@@ -1,4 +1,6 @@
-= EJB 3.x / Jakarta EE to Spring Boot Migration:toc: left:toclevels: 3
+= EJB 3.x / Jakarta EE to Spring Boot Migration
+:toc: left
+:toclevels: 3
 :sectnums:
 :icons: font
 :source-highlighter: highlight.js
@@ -6,11 +8,14 @@
 
 [.lead]
 Complete reference for migrating Enterprise JavaBeans (EJB) 3.x and Jakarta EE constructs to Spring Boot. Each section shows BEFORE (EJB/Jakarta EE) and AFTER (Spring Boot) with concrete code examples.
-[IMPORTANT]====
-Spring Boot does not provide an EJB container. This eliminates EJB-specific runtime services such as pooling, passivation/activation for stateful beans, container-managed remoting, @Lock semantics, MDB runtime and JCA resource adapter. The migration is therefore a change of programming model and not just an annotation swap.====
+[IMPORTANT]
+====
+Spring Boot does not provide an EJB container. This eliminates EJB-specific runtime services such as pooling, passivation/activation for stateful beans, container-managed remoting, @Lock semantics, MDB runtime and JCA resource adapter. The migration is therefore a change of programming model and not just an annotation swap.
+====
 
-=== Migration categories
-[cols="1,2,2"]|===
+== Migration categories
+[cols="1,2,2"]
+|===
 | Kategorie | Charakteristik | Beispiele
 
 | API‑nah (mechanisch)
@@ -22,11 +27,13 @@ Spring Boot does not provide an EJB container. This eliminates EJB-specific runt
 | Stateful Beans, Singleton-Locking, MDB, Timer, JCA, Remoting
 |===
 
-[NOTE]====
+[NOTE]
+====
 This project uses constructor injection in all examples. Field injection is not used in the examples.
 ====
 
-Configuration reference: `docs/research/project-configuration-yaml.md`.// Kapitel-Includes
+Configuration reference: `docs/research/project-configuration-yaml.md`.
+// Chapter includes
 include::chapters/_00-reference-apps.adoc[leveloffset=+1]
 
 include::chapters/_01-overview.adoc[leveloffset=+1]

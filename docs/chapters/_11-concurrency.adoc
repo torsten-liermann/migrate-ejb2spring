@@ -1,6 +1,7 @@
 == Concurrency
 EJB provides a declarative model for concurrency with `@Lock`, `@AccessTimeout` and `@ConcurrencyManagement`, especially for `@Singleton` beans. Spring does not offer a direct counterpart for this. This means that the migration must explicitly decide which synchronization strategy is required and how it will be technically implemented.
-.Specification references****
+.Specification references
+****
 * https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#singleton-session-bean-concurrency[Jakarta EJB 4.0 Spec - §4.8 Singleton Session Bean Concurrency]
 * https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#lock[Jakarta EJB 4.0 Spec - §4.8.5 @Lock]
 * https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#access-timeout[Jakarta EJB 4.0 Spec - §4.8.6 @AccessTimeout]
@@ -11,7 +12,8 @@ EJB provides a declarative model for concurrency with `@Lock`, `@AccessTimeout` 
 In EJB, a singleton bean is protected from parallel access problems by the container. This is done via `@Lock(READ)` and `@Lock(WRITE)` as well as optional timeouts. In Spring, a `@Service` singleton is a normal Java instance; Synchronization must be implemented explicitly. Methods that were protected by locks in EJB require a specific synchronization strategy in Spring.
 In the specification, `@Lock(WRITE)` is considered the default if no explicit lock annotation is set. `@AccessTimeout` defines the maximum waiting time for a lock; a value of `-1` means waiting indefinitely. On timeout the container throws `ConcurrentAccessTimeoutException`.
 .Example: BEFORE (EJB)
-[source, java]----
+[source, java]
+----
 import javax.ejb.Singleton;
 import javax.ejb.Lock;
 import javax.ejb.LockType;
@@ -35,7 +37,8 @@ public class ReferenceDataCache {
 ----
 
 .Example: AFTER (Spring Boot)
-[source, java]----
+[source, java]
+----
 import org.springframework.stereotype.Service;
 
 @Service
@@ -56,7 +59,8 @@ The choice of synchronization depends on the data model. For high parallelism a 
 The migration replaces `@Lock` annotations with `synchronized` modifiers and adds a `@NeedsReview` annotation indicating semantic simplification. With `@Lock(READ)` the parallel reading option is lost.
 For high read throughput scenarios, the @NeedsReview annotation recommends upgrading to ReadWriteLock:
 .Recommended ReadWriteLock upgrade
-[source, java]----
+[source, java]
+----
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.springframework.stereotype.Service;

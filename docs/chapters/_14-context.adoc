@@ -3,7 +3,8 @@ EJB provides context objects such as SessionContext, EJBContext, or MessageDrive
 === SessionContext and security
 In EJB the current user is queried via the `SessionContext`. In Spring Security this is done via `SecurityContextHolder` and the `Authentication` object.
 .Example: BEFORE (EJB)
-[source, java]----
+[source, java]
+----
 import javax.annotation.Resource;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
@@ -22,7 +23,8 @@ public class CustomerService {
 ----
 
 .Example: AFTER (Spring Boot)
-[source, java]----
+[source, java]
+----
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;

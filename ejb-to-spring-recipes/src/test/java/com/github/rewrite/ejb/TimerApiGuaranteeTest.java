@@ -26,14 +26,14 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.java.Assertions.java;
 
 /**
- * P0.3: Timer-API-Verwendungen vollstaendig ersetzen - "Harte Garantie"
+ * P0.3: fully replace Timer API usage - "hard guarantee"
  * <p>
- * Diese Tests verifizieren dass nach der Migration KEINE Timer-API-Aufrufe
+ * These tests verify that after migration, NO Timer API calls
  * (timer.getInfo(), timer.cancel(), timer.getTimeRemaining(), timer.getNextTimeout())
- * verbleiben - entweder weil sie automatisch ersetzt wurden, oder weil die Klasse
- * mit @NeedsReview markiert wurde.
+ * remain - either because they were replaced automatically, or because the class
+ * was marked with @NeedsReview.
  * <p>
- * Timer-Referenzierungsarten die abgedeckt werden:
+ * Covered timer reference patterns:
  * <ul>
  *   <li>Parameter: void timeout(Timer timer)</li>
  *   <li>Lokale Variable: Timer t = timerService.createTimer(...)</li>

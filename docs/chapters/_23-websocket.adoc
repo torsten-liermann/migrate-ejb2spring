@@ -1,6 +1,7 @@
 == WebSocket
 Jakarta WebSocket defines endpoints via `@ServerEndpoint` and optionally `@OnOpen`, `@OnMessage`, `@OnClose`. Spring Boot uses the Spring WebSocket model with `WebSocketHandler` or `@MessageMapping` in combination with STOMP. The migration needs to re-evaluate communication style, session management and threading.
-.Specification references****
+.Specification references
+****
 * https://jakarta.ee/specifications/websocket/2.1/jakarta-websocket-spec-2.1.html[Jakarta WebSocket 2.1 Spec]
 * https://jakarta.ee/specifications/websocket/2.1/jakarta-websocket-spec-2.1.html#server-endpoint[Jakarta WebSocket 2.1 - §3.1 @ServerEndpoint]
 * https://jakarta.ee/specifications/websocket/2.1/jakarta-websocket-spec-2.1.html#messaging[Jakarta WebSocket 2.1 - Chapter 5: Messaging]
@@ -9,7 +10,8 @@ Jakarta WebSocket defines endpoints via `@ServerEndpoint` and optionally `@OnOpe
 
 === ServerEndpoint to Spring WebSocket
 .Example: BEFORE (Jakarta WebSocket)
-[source, java]----
+[source, java]
+----
 import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
 
@@ -24,7 +26,8 @@ public class TrackingEndpoint {
 ----
 
 .Example: AFTER (Spring WebSocket)
-[source, java]----
+[source, java]
+----
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
@@ -45,7 +48,8 @@ The lifetime of a WebSocket session is container managed in Jakarta EE. In Sprin
 The WebSocket specification describes that one endpoint instance is used per connected peer, unless a separate configurator defines a different strategy. Session user properties are retained until 'onClose'; in distributed containers they must be serializable to allow session migration. These semantics must be explicitly taken into account when migrating to Spring.
 When `@ServerEndpoint` is persisted in Spring Boot, Endpoint instances are created by the WebSocket container and not by Spring. In this case, Spring injection is only possible via special configurator mechanisms and must be explicitly provided for in the project.
 === Automated migration
-[cols="1.3"]|===
+[cols="1.3"]
+|===
 | Name | `com.github.rewrite.ejb.MarkWebSocketForMigration`
 | Description | Marks `@ServerEndpoint`/`@ClientEndpoint` classes with `@NeedsReview(category=MANUAL_MIGRATION)`.
 | Configuration | none

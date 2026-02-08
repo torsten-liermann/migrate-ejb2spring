@@ -3,7 +3,8 @@ EJB applications are often tested using Arquillian or container-based integratio
 === Container-based testing
 Arquillian typically starts an application server and deploys the EJB application. In Spring Boot, the context is launched within the test and can be connected to external dependencies such as databases via test containers.
 .Example: AFTER (Spring Boot)
-[source, java]----
+[source, java]
+----
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 

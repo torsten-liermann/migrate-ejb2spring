@@ -2,7 +2,8 @@
 Jakarta Mail is often integrated into EJB applications via `Session` objects from JNDI. Spring Boot offers a simplified integration with `JavaMailSender`, which is configured via properties. The migration affects both injection and configuration.
 === JNDI session to JavaMailSender
 .Example: BEFORE (EJB)
-[source, java]----
+[source, java]
+----
 import javax.annotation.Resource;
 import javax.mail.Session;
 
@@ -14,7 +15,8 @@ public class NotificationService {
 ----
 
 .Example: AFTER (Spring Boot)
-[source, java]----
+[source, java]
+----
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 

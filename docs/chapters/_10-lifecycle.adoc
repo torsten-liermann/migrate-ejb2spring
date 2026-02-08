@@ -4,7 +4,8 @@ EJB defines a precise lifecycle with container-driven callbacks, especially for 
 EJB allows lifecycle methods on beans and entities. Additional transitions apply to stateful beans, which become relevant in memory shortages or load scenarios. The specification guarantees that `@PrePassivate` is called before passivation and `@PostActivate` is executed after reactivation. These callbacks are often used to unbind or rebind non-serializable resources.
 The specification calls `@PrePassivate` and `@PostActivate` exclusively for stateful session beans. Passivation is a container decision; The code must therefore be designed so that resources can be released before passivation and re-binded after activation.
 .Example: BEFORE (EJB)
-[source, java]----
+[source, java]
+----
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.ejb.PostActivate;
@@ -39,7 +40,8 @@ public class QuoteDraftService {
 === Spring Lifecycle
 Spring supports `@PostConstruct` and `@PreDestroy` as well as optional interfaces (`InitializingBean`, `DisposableBean`). Passivation phases do not exist. Stateful models are mapped in Spring either through explicit scopes, through session or request data, or through technical persistence. If the EJB implementation uses `@PrePassivate` or `@PostActivate`, alternative resource control must be introduced, for example through clear ownership rules, explicit closure of resources or by handing over to an infrastructure component.
 .Example: AFTER (Spring Boot)
-[source, java]----
+[source, java]
+----
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Service;

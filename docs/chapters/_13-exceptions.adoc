@@ -4,7 +4,8 @@ EJB differentiates between application exceptions and system exceptions. Applica
 `@ApplicationException` allows exceptions to be explicitly marked as technical and to control rollback behavior. This is an important basis for technical error handling in many EJB applications.
 Runtime exceptions that are not marked as application exceptions are treated as system exceptions in EJB. They result in rollback and may invalidate the affected bean instance. In Spring, this behavior must be reflected in the error and retry design.
 .Example: BEFORE (EJB)
-[source, java]----
+[source, java]
+----
 import javax.ejb.ApplicationException;
 
 @ApplicationException(rollback = false)
@@ -18,7 +19,8 @@ public class PricingRuleViolation extends Exception {
 === Spring equivalent
 In Spring, rollback behavior is defined in `@Transactional`. By default, checked exceptions do not result in rollback. If business exceptions should also trigger a rollback, this must be specified explicitly.
 .Example: AFTER (Spring Boot)
-[source, java]----
+[source, java]
+----
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional(rollbackFor = PricingRuleViolation.class)

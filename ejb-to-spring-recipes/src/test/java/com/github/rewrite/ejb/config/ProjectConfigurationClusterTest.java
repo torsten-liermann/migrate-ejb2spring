@@ -28,14 +28,14 @@ import java.nio.file.Path;
 import static org.assertj.core.api.Assertions.*;
 
 /**
- * Tests for P2.8: Cluster-Koordination YAML-Schalter.
+ * Tests for P2.8: cluster coordination YAML switch.
  * <p>
  * Validates the strategy + cluster interaction rules:
  * <table border="1">
- *   <tr><th>cluster</th><th>Erlaubte strategy</th><th>Aktion bei Konflikt</th></tr>
+ *   <tr><th>cluster</th><th>Allowed strategy</th><th>Action on conflict</th></tr>
  *   <tr><td>none</td><td>scheduled, taskscheduler, quartz</td><td>-</td></tr>
- *   <tr><td>quartz-jdbc</td><td>nur quartz</td><td>ConfigurationException</td></tr>
- *   <tr><td>shedlock</td><td>scheduled, taskscheduler</td><td>ConfigurationException bei quartz</td></tr>
+ *   <tr><td>quartz-jdbc</td><td>quartz only</td><td>ConfigurationException</td></tr>
+ *   <tr><td>shedlock</td><td>scheduled, taskscheduler</td><td>ConfigurationException for quartz</td></tr>
  * </table>
  */
 class ProjectConfigurationClusterTest {

@@ -13,7 +13,8 @@ The following areas are recognized by recipes and marked with `@NeedsReview`:
 These markings are brought together in the report and serve as a structured checklist.
 === Example: successful migration of a REST resource
 .Example: BEFORE (EJB)
-[source, java]----
+[source, java]
+----
 @Stateless
 @Path("/graph-traversal")
 public class GraphTraversalService {
@@ -28,7 +29,8 @@ public class GraphTraversalService {
 ----
 
 .Example: AFTER (Spring Boot)
-[source, java]----
+[source, java]
+----
 @Service
 @RequestMapping("/graph-traversal")
 public class GraphTraversalService {

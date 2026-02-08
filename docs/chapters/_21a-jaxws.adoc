@@ -35,7 +35,8 @@ The publish path for each endpoint is derived as follows:
 4. **For path collisions:** Unique suffix + `@NeedsReview`
 IMPORTANT: The `serviceName` attribute is WSDL specific and is NOT used as a URL path.
 ==== Edge cases and conflict handling
-[cols="1,2"]|===
+[cols="1,2"]
+|===
 | Situation | Behave
 | Existing CXF config (JAXRSServerFactoryBean, Endpoint beans)
 | No configuration generated, only dependencies added
@@ -46,17 +47,20 @@ IMPORTANT: The `serviceName` attribute is WSDL specific and is NOT used as a URL
 | cxf.path already configured
 | No Append; Comment shows source (properties/yaml/profile)
 | Modules without @WebService
-| No change|===
+| No change
+|===
 
 === Configuration via project.yaml
-[source,yaml]----
+[source,yaml]
+----
 jaxws:
   provider: cxf        # cxf | manual (Default: cxf)
   basePath: /services  # Servlet-Mapping (Default: /services)
 ----
 
 ==== Provider options
-[cols="1.3"]|===
+[cols="1.3"]
+|===
 | Provider | Description
 
 | `cxf` (Default)
@@ -72,13 +76,16 @@ Example: With `basePath: /ws`, endpoints can be reached under `/ws/MyService`.
 The property `cxf.path` is set in `application.properties`, but only if:
 * basePath differs from default (`/services`).
 * No existing `cxf.path` configuration was found (in properties, yaml or profile)
-[source, properties]----
+[source, properties]
+----
 # Only for non-default basePath:
-cxf.path=/ws----
+cxf.path=/ws
+----
 
 NOTE: With default basePath `/services` no `cxf.path` property is written because CXF already uses this default.
 === Generated configuration class
-[source, java]----
+[source, java]
+----
 package com.example;
 
 import jakarta.xml.ws.Endpoint;
@@ -106,9 +113,8 @@ If `jaxws.provider:manual` is configured:
 2. No CXF dependencies are added
 3. No configuration class is generated
 This enables a conscious decision for Spring-WS or other alternatives. The migration must be done completely manually.
-=== Provider documentation****
+=== Provider documentation
 * https://cxf.apache.org/[Apache CXF Documentation]
 * https://cxf.apache.org/docs/springboot.html[CXF Spring Boot Integration]
 * https://spring.io/projects/spring-ws[Spring Web Services]
 * https://jakarta.ee/specifications/xml-web-services/4.0/jakarta-xml-ws-spec-4.0.html[Jakarta XML Web Services 4.0 Spec]
-****

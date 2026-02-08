@@ -1,15 +1,18 @@
 == JSF
 JSF is a component-based UI framework with server-side state and strong container reference. Spring Boot does not provide direct JSF integration as standard. A migration therefore requires a conscious decision for the UI model and the runtime environment.
-.Specification references****
+.Specification references
+****
 * https://jakarta.ee/specifications/faces/4.0/jakarta-faces-spec-4.0.html[Jakarta Faces 4.0 Spec]
 * https://jakarta.ee/specifications/faces/4.0/jakarta-faces-spec-4.0.html#a4207[Jakarta Faces 4.0 - Chapter 7: Lifecycle]
 * https://jakarta.ee/specifications/faces/4.0/jakarta-faces-spec-4.0.html#a5097[Jakarta Faces 4.0 - Chapter 11: Custom Components]
-* https://docs.joinfaces.org/[JoinFaces Documentation]****
+* https://docs.joinfaces.org/[JoinFaces Documentation]
+****
 
 === Migration options in the project context
 The project uses JoinFaces to further operate JSF in the Spring Boot runtime. This option enables the operation of existing XHTML views. CDI and Spring remain separate contexts; The integration depends on the project and must be checked.
 .Migration options
-[cols="1,2,1"]|===
+[cols="1,2,1"]
+|===
 | approach | Description | status
 
 | JoinFaces
@@ -32,7 +35,8 @@ JoinFaces provides Spring Boot starters for JSF implementations (Mojarra, MyFace
 * Automatic resource configuration
 ==== Scope illustration
 JSF-specific scopes such as @ViewScoped are tied to the JSF lifecycle. `@ConversationScoped` is not supported in JoinFaces and requires manual migration.
-[cols="1,2,2"]|===
+[cols="1,2,2"]
+|===
 | CDI Scope | Mapping | Note
 
 | `@RequestScoped`
@@ -55,7 +59,8 @@ JSF-specific scopes such as @ViewScoped are tied to the JSF lifecycle. `@Convers
 ==== Compatibility
 Verified for project baseline (as of 2026-01-23). See https://github.com/joinfaces/joinfaces/releases[JoinFaces Releases] for current compatibility.
 
-[cols="1,1,1,1"]|===
+[cols="1,1,1,1"]
+|===
 | JoinFaces | Spring Boot | Jakarta EE | Java
 
 | 5.3.x
@@ -66,14 +71,16 @@ Verified for project baseline (as of 2026-01-23). See https://github.com/joinfac
 
 === Configuration
 JSF migration can be controlled via `project.yaml`:
-[source,yaml]----
+[source,yaml]
+----
 migration:
   jsf:
     runtime: joinfaces   # or: manual
 ----
 
 ==== Strategies
-[cols="1.3"]|===
+[cols="1.3"]
+|===
 | Strategy | Description
 
 | `joinfaces` (default)
@@ -96,7 +103,8 @@ The implementation can be used without Spring Boot if the activation is recreate
 This path is an optional architectural decision and does not affect the default strategy (JoinFaces).
 === Automated migration
 ==== Available recipes
-[cols="1.3"]|===
+[cols="1.3"]
+|===
 | Name | Description
 
 | `com.github.rewrite.ejb.AddJoinFacesDependencies`
@@ -125,7 +133,8 @@ This path is an optional architectural decision and does not affect the default 
 |===
 
 ==== Resource shifting
-[cols="1,1"]|===
+[cols="1,1"]
+|===
 | Quellpfad | Zielpfad
 
 | `src/main/webapp/WEB-INF/faces-config.xml`

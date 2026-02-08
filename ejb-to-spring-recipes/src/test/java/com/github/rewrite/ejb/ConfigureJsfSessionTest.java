@@ -39,16 +39,16 @@ import static org.openrewrite.properties.Assertions.properties;
  * <p>
  * Test cases from P2.3 specification:
  * <ul>
- *   <li>Klasse mit jakarta.faces.view.ViewScoped -> Session-Config generiert</li>
- *   <li>Klasse mit javax.faces.view.ViewScoped -> Session-Config generiert</li>
- *   <li>Klasse mit OmniFaces ViewScoped -> Session-Config generiert</li>
- *   <li>Klasse mit Spring ViewScoped -> KEINE Session-Config</li>
- *   <li>Kein ViewScoped im Projekt -> KEINE Session-Config</li>
- *   <li>Property bereits vorhanden -> NICHT ueberschreiben</li>
- *   <li>application.properties fehlt -> Erstellen mit Config</li>
- *   <li>Multi-Modul Support -> Separate Config pro Modul</li>
- *   <li>FQCN Annotation Detection -> Erkennt vollqualifizierte Annotationen</li>
- *   <li>Unused Import -> Kein False Positive</li>
+ *   <li>Class with jakarta.faces.view.ViewScoped -> session config generated</li>
+ *   <li>Class with javax.faces.view.ViewScoped -> session config generated</li>
+ *   <li>Class with OmniFaces ViewScoped -> session config generated</li>
+ *   <li>Class with Spring ViewScoped -> NO session config</li>
+ *   <li>No ViewScoped in project -> NO session config</li>
+ *   <li>Property already exists -> do NOT overwrite</li>
+ *   <li>application.properties missing -> create with config</li>
+ *   <li>Multi-module support -> separate config per module</li>
+ *   <li>FQCN annotation detection -> detects fully-qualified annotations</li>
+ *   <li>Unused import -> no false positive</li>
  * </ul>
  */
 class ConfigureJsfSessionTest implements RewriteTest {

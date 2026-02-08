@@ -1,10 +1,12 @@
-==Jakarta Batch
+== Jakarta Batch
 Jakarta Batch (JSR 352) defines a job model with steps, checkpoints and a standardized repository. Spring Batch offers its own, more configurable model. In this project, Jakarta batch classes are identified by marker recipes and marked with `@NeedsReview`.
-.Specification references****
+.Specification references
+****
 * https://jakarta.ee/specifications/batch/2.1/jakarta-batch-spec-2.1.html[Jakarta Batch 2.1 Spec]
 * https://jakarta.ee/specifications/batch/2.1/jakarta-batch-spec-2.1.html#job-specification-language[Jakarta Batch 2.1 - §8 Job Specification Language]
 * https://jakarta.ee/specifications/batch/2.1/jakarta-batch-spec-2.1.html#chunk-processing[Jakarta Batch 2.1 - §9 Chunk Processing]
-* https://docs.spring.io/spring-batch/reference/[Spring Batch Reference]****
+* https://docs.spring.io/spring-batch/reference/[Spring Batch Reference]
+****
 
 === Differences in modeling
 Jakarta Batch uses `@BatchProperty`, `JobOperator` and XML-based job definitions. Spring Batch models jobs as a Java configuration or via its own DSLs. Checkpoint mechanisms, restart logic and parameter transfer differ in details.
@@ -35,7 +37,8 @@ Migrating such flows requires explicit modeling with Spring Batch (Flow‑API, J
 partitioning). These steps remain intentionally manual.
 === Checkpoints for the project
 Before migration, the existing batch jobs must be captured:
-[cols="1.3"]|===
+[cols="1.3"]
+|===
 | aspect | Test
 
 | Job definitions
@@ -58,7 +61,8 @@ Before migration, the existing batch jobs must be captured:
 |===
 
 === Mapping Jakarta Batch → Spring Batch
-[cols="1,2,2"]|===
+[cols="1,2,2"]
+|===
 | Jakarta Batch | Spring Batch | Note
 
 | `@BatchProperty`
