@@ -1,39 +1,30 @@
-# Projekt‑Konfigurations‑YAML (Referenz)
-
-Status: Implementiert (Optionen) und fortlaufend erweitert.
-
-## Ausgangslage
-
-Mehrere Rezepte verwenden feste Source‑Root‑Pfade. Das begrenzt die Anwendbarkeit bei abweichenden Projektstrukturen (z. B. Gradle‑TestFixtures, Integration‑Tests, Kotlin‑Quellsets).
-
-Beispiel:
+# Project configuration YAML (reference)
+Status: Implemented (options) and continuously expanded.
+## Initial situation
+Several recipes use fixed source root paths. This limits the applicability for different project structures (e.g. Gradle TestFixtures, integration tests, Kotlin source sets).
+Example:
 ```java
 if (!sourcePath.contains("src/test/")) {
     return cd;
 }
 ```
-
-## Betroffene Rezepte (Hardcoded‑Pfade)
-
-| Rezept | Fundstellen | Priorität |
+## Affected recipes (hardcoded paths)
+| Recipe | Locations | Priority |
 |---|---|---|
-| AddNeedsReviewAnnotation | 62–66, 75–82, 476, 492 | hoch |
-| MigrateDataSourceDefinition | 41–48, 339, 342, 401, 852, 853 | hoch |
-| MigrateTestStubsToTestConfiguration | 195, 275, 278, 280, 282, 592 | hoch |
-| AddTestcontainersDevApplication | 210, 220, 416, 420 | hoch |
-| MigrateJmsDestination | 86, 123, 230, 245 | hoch |
-| RemoveComponentFromTestStubs | 83 | hoch |
-| AddSpringBootApplication | 109 | hoch |
-| GenerateMigrationReport | 31 | hoch |
-| MigratePersistenceXmlToProperties | 42 | hoch |
-| MigrateJndiStringToValue | 83 | hoch |
-| MarkJsfForMigration | 31, 32 | mittel |
-
-## project.yaml (Dateiname)
-
-Eine projektweite `project.yaml` ermöglicht die zentrale Definition der Source‑Roots und weiterer migrationsrelevanter Parameter.
-
-Beispiel:
+| AddNeedsReviewAnnotation | 62-66, 75-82, 476, 492 | high |
+| MigrateDataSourceDefinition | 41-48, 339, 342, 401, 852, 853 | high |
+| MigrateTestStubsToTestConfiguration | 195, 275, 278, 280, 282, 592 | high |
+| AddTestcontainersDevApplication | 210, 220, 416, 420 | high |
+| MigrateJmsDestination | 86, 123, 230, 245 | high |
+| RemoveComponentFromTestStubs | 83 | high |
+| AddSpringBootApplication | 109 | high |
+| GenerateMigrationReport | 31 | high |
+| MigratePersistenceXmlToProperties | 42 | high |
+| MigrateJndiStringToValue | 83 | high |
+| MarkJsfForMigration | 31, 32 | medium |
+## project.yaml (filename)
+A project-wide `project.yaml` enables the central definition of the source roots and other migration-relevant parameters.
+Example:
 ```yaml
 sources:
   main:
@@ -49,12 +40,12 @@ sources:
     - src/test/resources
 
 jaxrs:
-  strategy: keep-jaxrs    # oder: migrate-to-spring-mvc
+  strategy: keep-jaxrs    # or: migrate-to-spring-mvc
   server:
     provider: jersey      # jersey | resteasy | cxf
-    basePath: /api        # Base path für JAX-RS Endpoints (Default: /api)
+basePath: /api # Base path for JAX-RS endpoints (default: /api)
   client:
-    strategy: keep-jaxrs  # oder: manual | migrate-restclient | migrate-webclient
+    strategy: keep-jaxrs  # or: manual | migrate-restclient | migrate-webclient
     provider: jersey      # jersey, resteasy, cxf
     providerVersion: "3.1.5"
 
@@ -75,51 +66,37 @@ migration:
     cluster: none        # none | quartz-jdbc | shedlock
 ```
 
-## JAX-RS-Strategie (Implementiert)
-
-Die JAX‑RS‑Strategien werden in `project.yaml` gelesen. Fehlt die Datei, gilt `keep-jaxrs` für Server und Client.
-
-### Server
-
-- `keep-jaxrs`: JAX‑RS‑Server‑Annotationen bleiben unverändert.
-- `migrate-to-spring-mvc`: Server‑Migration zu Spring MVC (Ressourcen, HTTP‑Methoden, Parameter‑Binding, Response).
-
-### Server-Provider
-
-Der serverseitige Provider wird über `jaxrs.server.provider` gesteuert. Fehlt die Angabe, wird der Provider aus bestehenden Dependencies abgeleitet; falls keine Provider‑Dependencies vorhanden sind, gilt Jersey als Default.
-
-| Provider | Spring-Integration | Dependency |
-|----------|-------------------|------------|
-| `jersey` (Default) | Spring Boot Starter | `spring-boot-starter-jersey:3.4.1` |
-| `resteasy` | Servlet-basiert | `resteasy-servlet-spring-boot-starter:6.3.0.Final` |
+## JAX-RS Strategy (Implemented)
+The JAX‑RS strategies are read in `project.yaml`. If the file is missing, `keep-jaxrs` applies to both server and client.
+### Servers
+- `keep-jaxrs`: JAX-RS server annotations remain unchanged.
+- `migrate-to-spring-mvc`: Server migration to Spring MVC (resources, HTTP methods, parameter binding, response).
+### Server provider
+The server-side provider is controlled via `jaxrs.server.provider`. If the information is missing, the provider is derived from existing dependencies; If there are no provider dependencies, Jersey is considered the default.
+| Providers | Spring integration | Dependency |
+|----------|--------------------|------------|
+| `jersey` (default) | Spring Boot Starter | `spring-boot-starter-jersey:3.4.1` |
+| `resteasy` | Servlet based | `resteasy-servlet-spring-boot-starter:6.3.0.Final` |
 | `cxf` | Spring Boot Starter | `cxf-spring-boot-starter-jaxrs:4.1.4` |
-
-### Server-basePath
-
-Der `jaxrs.server.basePath` definiert das Basis-Pfad-Mapping für alle JAX-RS Endpoints.
-
+### Server basePath
+The `jaxrs.server.basePath` defines the base path mapping for all JAX-RS endpoints.
 - **Default:** `/api`
-- **Beispiel:** Bei `basePath: /rest` werden Endpoints unter `/rest/{ResourcePath}` erreichbar
-- **Umsetzung pro Provider:**
-  - **Jersey:** `@ApplicationPath("/api")` auf der generierten `ResourceConfig`-Subklasse
-  - **RESTEasy:** `@ApplicationPath("/api")` auf der `Application`-Subklasse
-  - **CXF:** `factory.setAddress("/api")` im `JAXRSServerFactoryBean`
-
-### Provider Auto-Detection
-
-Wenn kein expliziter Provider in `project.yaml` konfiguriert ist, wird der Provider automatisch aus den Maven-Dependencies erkannt:
-
-1. **Effektives Maven-Modell:** MavenResolutionResult wird abgefragt (compile/runtime Scope)
-2. **Fallback:** String-basierte Suche im POM-Inhalt
-3. **Mehrere Provider:** Bei Ambiguität wird ein `@NeedsReview` Kommentar im POM erzeugt und keine automatische Generierung durchgeführt
-
-**Beispiel Ambiguitäts-Kommentar:**
+- **Example:** With `basePath: /rest`, endpoints under `/rest/{ResourcePath}` are reachable
+- **Implementation per provider:**
+  - **Jersey:** `@ApplicationPath("/api")` on the generated `ResourceConfig` subclass
+  - **RESTEasy:** `@ApplicationPath("/api")` on the `Application` subclass
+  - **CXF:** `factory.setAddress("/api")` in `JAXRSServerFactoryBean`
+### Provider auto detection
+If no explicit provider is configured in `project.yaml`, the provider is automatically detected from the Maven dependencies:
+1. **Effective Maven model:** MavenResolutionResult is queried (compile/runtime scope)
+2. **Fallback:** String-based search in POM content
+3. **Multiple providers:** In case of ambiguity, a `@NeedsReview` comment is generated in the POM and no automatic generation is carried out
+**Example ambiguity comment:**
 ```xml
 <!--
     @NeedsReview: Multiple JAX-RS Providers Detected
     Found dependencies for: jersey, resteasy
-
-    Auto-generation skipped due to ambiguity. Please either:
+Auto-generation skipped due to ambiguity. Please either:
       1. Remove conflicting provider dependencies from POM
       2. Explicitly configure the desired provider in project.yaml:
          jaxrs:
@@ -127,116 +104,83 @@ Wenn kein expliziter Provider in `project.yaml` konfiguriert ist, wird der Provi
              provider: jersey|resteasy|cxf
 -->
 ```
-
-### Rezept: GenerateJaxRsServerConfig
-
-Das Rezept `com.github.rewrite.ejb.GenerateJaxRsServerConfig` generiert die provider-spezifische Spring Boot Konfiguration:
-
-| Option | Beschreibung |
+### Recipe: GenerateJaxRsServerConfig
+The recipe `com.github.rewrite.ejb.GenerateJaxRsServerConfig` generates the provider-specific Spring Boot configuration:
+| option | Description |
 |--------|-------------|
-| **Input** | `@Path`-annotierte Klassen im Modul |
-| **Output** | Konfigurations-Klasse + Provider-Dependency |
-| **Voraussetzung** | `jaxrs.strategy: keep-jaxrs` (Default) |
-
-**Generierte Klassen pro Provider:**
-
-- **Jersey:** `JerseyConfiguration extends ResourceConfig` mit `@Component` + `@ApplicationPath`
-- **RESTEasy:** `ResteasyConfiguration extends Application` mit `@ApplicationPath`
-- **CXF:** `CxfJaxrsConfiguration` mit `@Configuration` + `@Bean JAXRSServerFactoryBean`
-
+| **Input** | `@Path` annotated classes in module |
+| **Output** | Configuration class + provider dependency |
+| **Requirement** | `jaxrs.strategy: keep-jaxrs` (default) |
+**Generated classes per provider:**
+- **Jersey:** `JerseyConfiguration extends ResourceConfig` with `@Component` + `@ApplicationPath`
+- **RESTEasy:** `ResteasyConfiguration extends Application` with `@ApplicationPath`
+- **CXF:** `CxfJaxrsConfiguration` with `@Configuration` + `@Bean JAXRSServerFactoryBean`
 **Existing Config Detection:**
-
-Das Rezept erkennt vorhandene Konfigurationen und überspringt die Generierung:
-- Klassen mit Namen wie `*JerseyConfig*`, `*ResteasyConfig*`, `*CxfConfig*`
-- Klassen mit `@Configuration` die `ResourceConfig` oder `JAXRSServerFactoryBean` nutzen
-- Klassen die `jakarta.ws.rs.core.Application` oder `javax.ws.rs.core.Application` erweitern
-- Klassen mit `@ApplicationPath` Annotation
-
-## JAX-WS-Strategie (Implementiert)
-
-JAX-WS wird über `jaxws.*` gesteuert. Ziel ist der Provider-Erhalt; CXF ist der Default.
-
-### Provider
-
-| Provider | Beschreibung |
+The recipe detects existing configurations and skips generation:
+- Classes with names like `*JerseyConfig*`, `*ResteasyConfig*`, `*CxfConfig*`
+- Classes with `@Configuration` that use `ResourceConfig` or `JAXRSServerFactoryBean`
+- Classes that extend `jakarta.ws.rs.core.Application` or `javax.ws.rs.core.Application`
+- Classes with `@ApplicationPath` annotation
+## JAX-WS Strategy (Implemented)
+JAX-WS is controlled via `jaxws.*`. The aim is to maintain the provider; CXF is the default.
+### Providers
+| Providers | Description |
 |----------|-------------|
-| `cxf` (Default) | JAX-WS Endpoints bleiben erhalten, CXF Spring Boot Starter wird integriert |
-| `manual` | Keine automatische Verarbeitung; Endpoints bleiben für manuelle Migration unverändert |
-
+| `cxf` (default) | JAX-WS Endpoints are retained, CXF Spring Boot Starter is integrated |
+| `manual` | No automatic processing; Endpoints remain unchanged for manual migration |
 ### basePath
-
-Der `jaxws.basePath` definiert das CXF Servlet-Mapping (`cxf.path` Property).
-
+The `jaxws.basePath` defines the CXF Servlet mapping (`cxf.path` property).
 - **Default:** `/services`
-- **Beispiel:** Bei `basePath: /ws` werden Endpoints unter `/ws/{ServiceName}` erreichbar
-- **Hinweis:** `cxf.path` Property wird nur geschrieben wenn basePath vom Default abweicht und nicht bereits konfiguriert ist
-
-### Beispiele
-
-**CXF-Strategie (Default):**
+- **Example:** With `basePath: /ws`, endpoints are reachable under `/ws/{ServiceName}`
+- **Note:** `cxf.path` property is only written if basePath differs from the default and is not already configured
+### Examples
+**CXF strategy (default):**
 ```yaml
-# Keine Konfiguration → provider=cxf, basePath=/services
+# No configuration -> provider=cxf, basePath=/services
 # Generiert: JaxwsConfiguration.java, cxf-spring-boot-starter-jaxws Dependency
-# (cxf.path Property nur bei nicht-default basePath)
+# (cxf.path property only for non-default basePath)
 ```
 
-**Explizite Konfiguration:**
+**Explicit configuration:**
 ```yaml
 jaxws:
   provider: cxf
   basePath: /ws
 ```
-
-**Manuelle Migration:**
+**Manual migration:**
 ```yaml
 jaxws:
-  provider: manual   # → Keine automatische Verarbeitung; vollständig manuelle Migration
+provider: manual # -> No automatic processing; completely manual migration
 ```
 
-### Konfliktbehandlung
-
-- **Spring-WS vorhanden:** Wenn `spring-ws-core` oder `spring-boot-starter-web-services` im effektiven Maven-Modell vorhanden ist, wird ein POM-Kommentar-Marker (`@NeedsReview: JAX-WS Migration Conflict`) eingefügt; keine CXF-Config generiert
-- **Vorhandene CXF-Config:** Existierende `Endpoint`-Beans oder `JAXRSServerFactoryBean` werden erkannt; keine doppelte Config-Generierung
-
-Siehe auch: `docs/chapters/_21a-jaxws.adoc` für vollständige Dokumentation.
-
+### Conflict handling
+- **Spring-WS present:** If `spring-ws-core` or `spring-boot-starter-web-services` is present in the effective Maven model, a POM comment marker (`@NeedsReview: JAX-WS Migration Conflict`) is inserted; no CXF config generated
+- **Existing CXF Config:** Existing `Endpoint` beans or `JAXRSServerFactoryBean` are recognized; no double config generation
+See also: `docs/chapters/_21a-jaxws.adoc` for complete documentation.
 ### Client
-
-- `keep-jaxrs`: JAX‑RS‑Client bleibt, Provider‑Dependencies werden hinzugefügt.
-- `manual`: JAX‑RS‑Client‑Nutzung wird markiert (`@NeedsReview` + `@Profile("manual-migration")`).
-- `migrate-restclient` und `migrate-webclient`: derzeit nicht implementiert; der Lauf fällt auf `manual` zurück und erzeugt eine Warnung.
-
-## Timer-Migration Konfiguration (Implementiert)
-
-Die Timer-Strategie wird über `migration.timer.*` gesteuert.
-
-**Default (wenn `project.yaml` fehlt):**
-
+- `keep-jaxrs`: JAX-RS client remains, provider dependencies are added.
+- `manual`: JAX‑RS‑client usage is marked (`@NeedsReview` + `@Profile("manual-migration")`).
+- `migrate-restclient` and `migrate-webclient`: currently not implemented; the run falls back to `manual` and generates a warning.
+## Timer migration configuration (Implemented)
+The timer strategy is controlled via `migration.timer.*`.
+**Default (if `project.yaml` is missing):**
 - `strategy = scheduled`
 - `cluster = none`
-
-Begründung: konservativer Standard, nur sichere `@Schedule`-Fälle werden automatisiert migriert; komplexe Timer verbleiben als Marker.
-
-### Strategien
-
-| Strategy | Beschreibung |
+Reason: conservative standard, only safe `@Schedule` cases are automatically migrated; complex timers remain as markers.
+### Strategies
+| Strategy | Description |
 |----------|-------------|
-| `scheduled` | @Schedule → @Scheduled für einfache Fälle, Marker für komplexe |
-| `taskscheduler` | @Schedule → TaskScheduler-Pattern für Timer-Parameter |
-| `quartz` | @Schedule → Quartz Job/Trigger für Persistenz und Cluster |
-
-### Anforderungen
-
-| Einstellung | Wirkung |
+| `scheduled` | @Schedule -> @Scheduled for simple cases, markers for complex |
+| `taskscheduler` | @Schedule -> TaskScheduler pattern for timer parameters |
+| `quartz` | @Schedule -> Quartz job/trigger for persistence and cluster |
+### Requirements
+| Setting | Effect |
 |-------------|---------|
-| `cluster: quartz-jdbc` | Erfordert `strategy: quartz` |
-| `cluster: shedlock` | Nicht kompatibel mit `strategy: quartz` |
-| `cluster: none` | Keine Einschränkung |
-
-### Entscheidungslogik und Priorität
-
-Die effektive Strategie wird durch `getEffectiveTimerStrategy()` validiert. Inkompatible Kombinationen lösen eine `ConfigurationException` aus.
-
+| `cluster: quartz-jdbc` | Requires `strategy: quartz` |
+| `cluster: shedlock` | Not compatible with `strategy: quartz` |
+| `cluster: none` | No restriction |
+### Decision logic and priority
+The effective strategy is validated by `getEffectiveTimerStrategy()`. Incompatible combinations throw a `ConfigurationException`.
 ```java
 if (cluster == QUARTZ_JDBC && strategy != QUARTZ) {
     throw new ConfigurationException(...);
@@ -247,155 +191,111 @@ if (cluster == SHEDLOCK && strategy == QUARTZ) {
 return strategy;
 ```
 
-### Beispiele
-
-**Projekt ohne spezielle Anforderungen (Default):**
+### Examples
+**Project without special requirements (default):**
 ```yaml
-# Keine Konfiguration → strategy=scheduled, cluster=none
+# No configuration -> strategy=scheduled, cluster=none
 ```
-
-**Projekt mit persistenten Timern:**
+**Project with persistent timers:**
 ```yaml
 migration:
   timer:
-    cluster: quartz-jdbc   # → strategy muss quartz sein
+cluster: quartz-jdbc # -> strategy must be quartz
 ```
 
-**Projekt mit expliziter Quartz-Wahl:**
+**Project with explicit Quartz choice:**
 ```yaml
 migration:
   timer:
     strategy: quartz
     cluster: quartz-jdbc
 ```
-
-## Jakarta Batch Migration (Implementiert)
-
-Jakarta Batch (JSR-352) Klassen werden automatisch markiert und Spring Batch Konfigurationsstubs generiert.
-
-**Verhalten:**
-
-1. `MarkJakartaBatchForMigration` markiert alle Jakarta Batch Klassen mit `@NeedsReview(category = MANUAL_MIGRATION)`
-2. `GenerateSpringBatchConfigFromJsl` generiert `BatchJobsConfiguration` aus JSL Job XML
-
-**Automatisch erkannte Jakarta Batch APIs:**
-
+## Jakarta Batch Migration (Implemented)
+Jakarta Batch (JSR-352) classes are automatically marked and Spring Batch configuration stubs are generated.
+**Behave:**
+1. `MarkJakartaBatchForMigration` marks all Jakarta Batch classes with `@NeedsReview(category = MANUAL_MIGRATION)`
+2. `GenerateSpringBatchConfigFromJsl` generates `BatchJobsConfiguration` from JSL Job XML
+**Automatically detected Jakarta Batch APIs:**
 - `AbstractItemReader`, `AbstractItemWriter`, `ItemReader`, `ItemWriter`, `ItemProcessor`
 - `Batchlet`, `AbstractBatchlet`
 - `JobOperator`, `BatchRuntime`, `JobContext`, `StepContext`
-- Alle Listener-Interfaces (`JobListener`, `StepListener`, `ChunkListener`, etc.)
-- Partition-APIs (`PartitionMapper`, `PartitionReducer`, etc.)
-
-**JSL XML Verarbeitung:**
-
-- Scannt `META-INF/batch-jobs/*.xml`
-- Generiert `BatchJobsConfiguration` mit Job/Step Bean-Definitionen
-- Chunk-Steps → `StepBuilder.<Object, Object>chunk(...)`
-- Batchlet-Steps → `StepBuilder.tasklet(...)`
-- Komplexe Flows (split, flow, decision, transitions) → TODO-Kommentare
-
-**Keine Konfiguration erforderlich** - läuft automatisch in der Hauptpipeline.
-
-## Remote-Interface-Migration Konfiguration (Implementiert)
-
-Die @Remote-Interface-Strategie wird über `migration.remote.*` gesteuert.
-
-**Default (wenn `project.yaml` fehlt):**
-
+- All listener interfaces (`JobListener`, `StepListener`, `ChunkListener`, etc.)
+- Partition APIs (`PartitionMapper`, `PartitionReducer`, etc.)
+**JSL XML processing:**
+- Scans `META-INF/batch-jobs/*.xml`
+- Generates `BatchJobsConfiguration` with job/step bean definitions
+- Chunk steps -> `StepBuilder.<Object, Object>chunk(...)`
+- Batchlet steps -> `StepBuilder.tasklet(...)`
+- Complex flows (split, flow, decision, transitions) -> TODO comments
+**No configuration required** - runs automatically in the main pipeline.
+## Remote interface migration configuration (Implemented)
+The @Remote interface strategy is controlled via `migration.remote.*`.
+**Default (if `project.yaml` is missing):**
 - `strategy = rest`
-
-### Strategien
-
-| Strategy | Beschreibung |
+### Strategies
+| Strategy | Description |
 |----------|-------------|
-| `rest` | Generiert REST-Controller, DTOs, @HttpExchange-Client und Config |
-| `manual` | Markiert @Remote-Interfaces mit @NeedsReview für manuelle Migration |
-
-### Beispiele
-
-**REST-Strategie (Default):**
+| `rest` | Generates REST Controllers, DTOs, @HttpExchange Client and Config |
+| `manual` | Mark @Remote interfaces with @NeedsReview for manual migration |
+### Examples
+**REST strategy (default):**
 ```yaml
-# Keine Konfiguration → strategy=rest
+# No configuration -> strategy=rest
 # Generiert: {Interface}RestController, {Method}Request DTOs, {Interface}Client, {Interface}ClientConfig
 ```
 
-**Manuelle Migration:**
+**Manual migration:**
 ```yaml
 migration:
   remote:
-    strategy: manual   # → @Remote entfernt, @NeedsReview(category=REMOTE_ACCESS) hinzugefügt
+strategy: manual   # -> @Remote removed, @NeedsReview(category=REMOTE_ACCESS) added
 ```
-
-### Client-Properties
-
-Für jeden generierten Client wird eine Base-URL-Property benötigt:
-
+### Client properties
+A base URL property is required for each generated client:
 ```properties
 # Format: {interfaceName}.baseUrl (camelCase)
 searchService.baseUrl=http://localhost:8080
 paymentGateway.baseUrl=http://payments.example.com:8080
 ```
-
-### Überladene Methoden
-
-Bei überladenen Methoden werden Pfad-Suffixe und nummerierte DTO-Namen generiert:
-
-- Pfade: `/api/{Interface}/{method}/1`, `/api/{Interface}/{method}/2`, ...
+### Overloaded methods
+Overloaded methods generate path suffixes and numbered DTO names:
+- Paths: `/api/{Interface}/{method}/1`, `/api/{Interface}/{method}/2`, ...
 - DTOs: `{Method}1Request`, `{Method}2Request`, ...
-
-**Wichtig:** Die Nummerierung basiert auf der Quelldatei-Reihenfolge. Methodenumordnung ändert die Pfade.
-
-Siehe auch: `docs/chapters/_15-remote-local.adoc` für vollständige Dokumentation.
-
-## JSF-Migration Konfiguration (Implementiert)
-
-Die JSF-Runtime-Strategie wird über `migration.jsf.*` gesteuert.
-
-**Default (wenn `project.yaml` fehlt):**
-
+**Important:** Numbering is based on source file order. Method reordering changes the paths.
+See also: `docs/chapters/_15-remote-local.adoc` for complete documentation.
+## JSF migration configuration (Implemented)
+The JSF runtime strategy is controlled via `migration.jsf.*`.
+**Default (if `project.yaml` is missing):**
 - `runtime = joinfaces`
-
-### Strategien
-
-| Strategy | Beschreibung |
+### Strategies
+| Strategy | Description |
 |----------|-------------|
-| `joinfaces` | JSF-Scopes bleiben, JoinFaces stellt Runtime bereit. Marker: `CONFIGURATION` |
-| `manual` | JSF-Scopes werden für manuelle Spring-Migration markiert. Marker: `MANUAL_MIGRATION` |
-
-### Beispiele
-
-**JoinFaces-Strategie (Default):**
+| `joinfaces` | JSF scopes remain, JoinFaces provides runtime. Marker: `CONFIGURATION` |
+| `manual` | JSF scopes are marked for manual Spring migration. Marker: `MANUAL_MIGRATION` |
+### Examples
+**JoinFaces strategy (default):**
 ```yaml
-# Keine Konfiguration → runtime=joinfaces
-# @ViewScoped, @FlowScoped bleiben unverändert
-# Klassen werden mit @NeedsReview(category=CONFIGURATION) markiert
+# No configuration -> runtime=joinfaces
+# @ViewScoped and @FlowScoped remain unchanged
+# Classes are marked with @NeedsReview(category=CONFIGURATION)
 ```
 
-**Manuelle Migration:**
+**Manual migration:**
 ```yaml
 migration:
   jsf:
-    runtime: manual   # → @NeedsReview(category=MANUAL_MIGRATION) für Spring-Scope-Migration
+runtime: manual   # -> @NeedsReview(category=MANUAL_MIGRATION) for Spring scope migration
 ```
-
 ### ConversationScoped
-
-`@ConversationScoped` wird unabhängig von der Strategie immer mit `@NeedsReview(category=SEMANTIC_CHANGE)` markiert, da es keine direkte Spring-Entsprechung gibt.
-
-Siehe auch: `docs/chapters/_38-jsf.adoc` für vollständige Dokumentation.
-
-## Umsetzungsschritte (Konzept)
-
-- Einlesen der YAML‑Konfiguration (z. B. Jackson/SnakeYAML)
-- Bereitstellung im `ExecutionContext`
-- Ersetzung harter Pfade durch konfigurierbare Werte
-- Defaults für fehlende Konfiguration
-
+`@ConversationScoped` is always marked with `@NeedsReview(category=SEMANTIC_CHANGE)` regardless of the strategy because there is no direct Spring equivalent.
+See also: `docs/chapters/_38-jsf.adoc` for complete documentation.
+## Implementation steps (concept)
+- Reading the YAML configuration (e.g. Jackson/SnakeYAML)
+- Deployment in `ExecutionContext`
+- Replacing hard paths with configurable values
+- Defaults for missing configuration
 ## Alternative: OpenRewrite Styles
-
-OpenRewrite bietet Styles als Projektkonfiguration. Es ist zu prüfen, ob Styles für die Source‑Root‑Konfiguration ausreichend sind oder ob eine eigene YAML erforderlich bleibt.
-
-## Referenzen
-
+OpenRewrite offers styles as a project configuration. It must be checked whether styles are sufficient for the source root configuration or whether a separate YAML remains necessary.
+## References
 - https://docs.openrewrite.org/concepts-explanations/styles
 - https://docs.gradle.org/current/userguide/java_plugin.html#source_sets

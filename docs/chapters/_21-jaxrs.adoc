@@ -1,24 +1,16 @@
 == JAX-RS
-
-JAX-RS definiert Ressourcen, Pfade und Content-Negotiation für REST-APIs. In Spring Boot wird diese Funktionalität durch Spring MVC oder WebFlux bereitgestellt. Die Migration betrifft Ressourcenklassen, Parameterbindung, Exception-Mapping und Filter/Interceptor-Mechanismen.
-
-.Spezifikationsreferenzen
-****
+JAX-RS defines resources, paths, and content negotiation for REST APIs. In Spring Boot, this functionality is provided by Spring MVC or WebFlux. The migration affects resource classes, parameter binding, exception mapping and filter/interceptor mechanisms.
+.Specification references****
 * https://jakarta.ee/specifications/restful-ws/3.1/jakarta-restful-ws-spec-3.1.html[Jakarta RESTful Web Services 3.1 Spec]
 * https://jakarta.ee/specifications/restful-ws/3.1/jakarta-restful-ws-spec-3.1.html#resources[Jakarta REST 3.1 - Chapter 3: Resources]
 * https://jakarta.ee/specifications/restful-ws/3.1/jakarta-restful-ws-spec-3.1.html#providers[Jakarta REST 3.1 - Chapter 4: Providers]
-* https://jakarta.ee/specifications/restful-ws/3.1/jakarta-restful-ws-spec-3.1.html#client_api[Jakarta REST 3.1 - Chapter 5: Client API]
-****
+* https://jakarta.ee/specifications/restful-ws/3.1/jakarta-restful-ws-spec-3.1.html#client_api[Jakarta REST 3.1 - Chapter 5: Client API]****
 
-=== Ressourcen und Pfade
-
-JAX-RS verwendet `@Path`, `@GET`, `@POST` und Parameter-Annotationen. Spring MVC nutzt `@RestController`, `@RequestMapping` und spezifische Mapping-Annotationen. Pfad- und Medien-Typen lassen sich meist direkt übertragen, jedoch unterscheiden sich Default-Konventionen (z. B. Trailing Slashes, MediaType-Priorisierung).
-
-Die JAX‑RS‑Spezifikation definiert für Ressourcen standardmäßig eine Per‑Request‑Lebensdauer. Implementierungen dürfen andere Lifecycles anbieten; die Spezifikation weist jedoch darauf hin, dass Feld‑ und Property‑Injection nur für den Default‑Lifecycle vorgesehen ist. Wenn im Projekt Singleton‑Ressourcen genutzt werden, ist die Injection von `@Context`‑Feldern und ähnlichen Abhängigkeiten zu prüfen.
-
-.Beispiel: VORHER (JAX-RS)
-[source,java]
-----
+=== Resources and paths
+JAX-RS uses `@Path`, `@GET`, `@POST` and parameter annotations. Spring MVC uses `@RestController`, `@RequestMapping` and specific mapping annotations. Path and media types can usually be transferred directly, but default conventions differ (e.g. trailing slashes, MediaType prioritization).
+By default, the JAX-RS specification defines a per-request lifetime for resources. Implementations may offer other lifecycles; However, the specification indicates that field and property injection is only intended for the default lifecycle. If singleton resources are used in the project, the injection of @Context fields and similar dependencies must be checked.
+.Example: BEFORE (JAX-RS)
+[source, java]----
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 
@@ -34,9 +26,8 @@ public class ShipmentResource {
 }
 ----
 
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+.Example: AFTER (Spring Boot)
+[source, java]----
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -50,181 +41,140 @@ public class ShipmentController {
 }
 ----
 
-=== Exception- und Filter-Handling
-
-JAX-RS nutzt `ExceptionMapper`, `ContainerRequestFilter` und `ContainerResponseFilter`. In Spring sind `@ControllerAdvice`, `HandlerInterceptor` und Filter die Entsprechungen. Migrationen sollten bestehende HTTP-Statuscodes und Fehlerformate exakt übernehmen, da sie Teil des API-Vertrags sind.
-
-`@Context`‑Injection (z. B. `UriInfo`, `SecurityContext`) ist in JAX‑RS standardisiert. In Spring wird der Zugriff auf Request‑Kontext über Method‑Parameter (`HttpServletRequest`, `Principal`) oder über `RequestContextHolder` gelöst. Eine direkte 1:1‑Übernahme existiert nicht; der Zielzugriff ist pro Endpunkt zu definieren.
-
+=== Exception and filter handling
+JAX-RS uses `ExceptionMapper`, `ContainerRequestFilter` and `ContainerResponseFilter`. In Spring, `@ControllerAdvice`, `HandlerInterceptor` and Filter are the equivalents. Migrations should exactly inherit existing HTTP status codes and error formats as they are part of the API contract.
+`@Context` injection (e.g. `UriInfo`, `SecurityContext`) is standardized in JAX‑RS. In Spring, access to request context is solved via method parameters (`HttpServletRequest`, `Principal`) or via `RequestContextHolder`. There is no direct 1:1 transfer; The target access must be defined per endpoint.
 === JAX-RS Client
-
-JAX-RS Client APIs können durch Spring `RestClient`, `WebClient` oder weiterhin durch einen JAX-RS Client ersetzt werden. Die Wahl hängt von bestehenden Features wie Client-Filtern, Authentifizierung und Response-Streaming ab.
-
-=== Serverbetrieb mit JAX-RS Providern (keep-jaxrs)
-
-Wenn `keep-jaxrs` gewählt wird, bleibt die serverseitige JAX-RS Implementierung erhalten. In Spring Boot ist dafür eine explizite Provider-Wahl erforderlich, weil Spring selbst keinen JAX-RS Server mitliefert. Die Provider unterscheiden sich in Deployment-Mechanik, Servlet-Registrierung, Filterkette und JSON-B/JSON-Verarbeitung. Die Auswahl muss pro Projekt getroffen und in der Konfiguration dokumentiert werden.
-
-Die Migration unterscheidet dabei zwischen **clientseitigem Provider** (Dependencies für JAX-RS Client) und **serverseitigem Provider** (Runtime-Integration im Spring Boot Kontext). Der aktuelle Stand automatisiert nur die clientseitigen Dependencies; die serverseitige Provider-Integration ist als separater Ausbau vorgesehen.
-
-==== Provider-Überblick (serverseitig)
-
-[cols="1,2,2"]
-|===
-| Provider | Spring-Unterstützung | Bemerkung für die Migration
+JAX-RS Client APIs can be replaced with Spring `RestClient`, `WebClient` or further with a JAX-RS Client. The choice depends on existing features such as client filtering, authentication and response streaming.
+=== Server operation with JAX-RS providers (keep-jaxrs)
+If `keep-jaxrs` is chosen, the server-side JAX-RS implementation is preserved. An explicit provider choice is required in Spring Boot because Spring itself does not provide a JAX-RS server. The providers differ in deployment mechanics, servlet registration, filter chain and JSON-B/JSON processing. The selection must be made for each project and documented in the configuration.
+The migration differentiates between **client-side provider** (dependencies for JAX-RS client) and **server-side provider** (runtime integration in the Spring Boot context). The current status only automates the client-side dependencies; The server-side provider integration is planned as a separate expansion.
+==== Provider overview (server side)
+[cols="1,2,2"]|===
+| Providers | Spring support | Note for migration
 
 | Jersey
-| Spring Boot bietet eine offizielle Integration über `spring-boot-starter-jersey`.
-| Geeignet, wenn JAX-RS serverseitig beibehalten werden soll und eine Boot-native Integration gewünscht ist.
+| Spring Boot offers an official integration via `spring-boot-starter-jersey`.
+| Suitable if JAX-RS is to be retained on the server side and boot-native integration is desired.
 
 | RESTEasy
-| Integration erfolgt über RESTEasy-Projekte/Starter, nicht über Spring Boot selbst.
-| Erfordert explizite Servlet-Registrierung und Abhängigkeiten; Verhalten ist provider-spezifisch zu prüfen.
+| Integration occurs via RESTEasy projects/starters, not Spring Boot itself.
+| Requires explicit servlet registration and dependencies; Behavior must be checked on a provider-specific basis.
 
 | CXF
-| Integration erfolgt über Apache CXF (Spring Boot Starter oder eigene Konfiguration).
-| Geeignet für Projekte mit CXF-Bindings oder gemeinsamer JAX-RS/JAX-WS Infrastruktur.
+| Integration takes place via Apache CXF (Spring Boot Starter or your own configuration).
+| Suitable for projects with CXF bindings or shared JAX-RS/JAX-WS infrastructure.
 |===
 
-Die Provider-Wahl beeinflusst die technische Umsetzung (Servlet-Registrierung, JSON-B/JSON-Jackson Bridge, Filter-Kette). Für eine stabile Migration ist die Provider-Entscheidung Teil der Projektarchitektur und muss dokumentiert werden.
-
-==== Auswahlkriterien und Spring-Integration
-
-Für die Provider-Wahl sind mindestens folgende Kriterien zu dokumentieren:
-
-- vorhandene Provider-Nutzung im Projekt (Dependencies, Konfiguration, spezifische Klassen)
-- benötigte Features (Filter/Interceptor, JSON-B/JSON-Jackson, Exception-Mapping)
-- gewünschter Betriebsmodus (Servlet-Registrierung, Pfad-Layout, Integration in Spring-Kontext)
-
-Jeder Provider bringt eigene Integrationsmechanismen mit. Spring Boot stellt keinen generischen JAX‑RS‑Server zur Verfügung; die Einbindung erfolgt providerabhängig. Für die Migration ist daher eine klare Entscheidung erforderlich, welche Integration im Zielprojekt genutzt wird.
-
-.Provider-Dokumentation
-****
+The choice of provider influences the technical implementation (servlet registration, JSON-B/JSON-Jackson Bridge, filter chain). For a stable migration, the provider decision is part of the project architecture and must be documented.
+==== Selection criteria and Spring integration
+At least the following criteria must be documented when choosing a provider:
+- existing provider usage in the project (dependencies, configuration, specific classes)
+- required features (filter/interceptor, JSON-B/JSON-Jackson, exception mapping)
+- desired operating mode (servlet registration, path layout, integration into Spring context)
+Each provider has its own integration mechanisms. Spring Boot does not provide a generic JAX-RS server; The integration is provider-dependent. The migration therefore requires a clear decision as to which integration will be used in the target project.
+.Provider documentation****
 * https://eclipse-ee4j.github.io/jersey/[Jersey Documentation]
 * https://resteasy.dev/[RESTEasy Documentation]
 * https://cxf.apache.org/[Apache CXF Documentation]
 ****
 
-=== Konfiguration über project.yaml
-
-Die JAX‑RS‑Server‑ und Client‑Strategien werden in `project.yaml` konfiguriert. Fehlt die Datei, wird JAX‑RS standardmäßig beibehalten (Server und Client). Eine Abweichung vom Default (z. B. `manual`) erfordert eine explizite Angabe in `project.yaml`.
-
-[source,yaml]
-----
+=== Configuration via project.yaml
+The JAX‑RS server and client strategies are configured in `project.yaml`. If the file is missing, JAX‑RS is retained by default (server and client). A deviation from the default (e.g. `manual`) requires an explicit specification in `project.yaml`.
+[source,yaml]----
 jaxrs:
   strategy: keep-jaxrs | migrate-to-spring-mvc
   server:
     provider: jersey | resteasy | cxf
-    basePath: /api        # Base path für JAX-RS Endpoints (Default: /api)
+    basePath: /api        # Base path for JAX-RS endpoints (default: /api)
   client:
     strategy: keep-jaxrs | manual | migrate-restclient | migrate-webclient
     provider: jersey | resteasy | cxf
-    providerVersion: "3.1.5"
-----
+    providerVersion: "3.1.5"----
 
-Server‑Strategie:
-
-- `keep-jaxrs`: JAX‑RS‑Server‑Annotationen bleiben unverändert, die Server‑Rezepte führen keine Migration durch.
-- `migrate-to-spring-mvc`: aktiviert die Server‑Rezepte für `@Path`, HTTP‑Methoden, Parameter‑Binding und `Response`‑Migration.
-- `keep-jaxrs` setzt zusätzlich einen Server‑Provider voraus (`jaxrs.server.provider`), damit die Runtime‑Integration eindeutig ist.
-
-Client‑Strategie:
-
-- `keep-jaxrs`: JAX‑RS Client bleibt, Provider‑Dependencies werden hinzugefügt.
-- `manual`: JAX‑RS‑Client‑Nutzung wird mit `@NeedsReview` und `@Profile("manual-migration")` markiert.
-- `migrate-restclient` und `migrate-webclient` sind derzeit nicht implementiert; der Lauf fällt auf `manual` zurück und erzeugt eine Warnung.
-- Aktueller Implementierungsstand im Rezept `com.github.rewrite.ejb.MigrateJaxRsClient`: `keep-jaxrs` und `manual` sind wirksam, `migrate-restclient`/`migrate-webclient` führen zu `manual`.
-
-Rezept‑Optionen (`MigrateJaxRsClient` und die Server‑Rezepte) überschreiben `project.yaml`, sofern sie explizit gesetzt sind.
-
-=== Rezept: MigrateJaxRsClient
-
-[cols="1,3"]
-|===
+Server strategy:
+- `keep-jaxrs`: JAX-RS server annotations remain unchanged, the server recipes do not migrate.
+- `migrate-to-spring-mvc`: enables the server recipes for `@Path`, HTTP methods, parameter binding and `Response` migration.
+- `keep-jaxrs` also requires a server provider (`jaxrs.server.provider`) so that the runtime integration is clear.
+Client strategy:
+- `keep-jaxrs`: JAX‑RS client remains, provider dependencies are added.
+- `manual`: JAX-RS client usage is marked with `@NeedsReview` and `@Profile("manual-migration")`.
+- `migrate-restclient` and `migrate-webclient` are currently not implemented; the run falls back to `manual` and generates a warning.
+- Current implementation status in recipe `com.github.rewrite.ejb.MigrateJaxRsClient`: `keep-jaxrs` and `manual` are effective, `migrate-restclient`/`migrate-webclient` lead to `manual`.
+Recipe options (`MigrateJaxRsClient` and the server recipes) override `project.yaml` if explicitly set.
+=== Recipe: MigrateJaxRsClient
+[cols="1.3"]|===
 | Name | `com.github.rewrite.ejb.MigrateJaxRsClient`
-| Beschreibung | Fügt JAX‑RS‑Client‑Runtime‑Abhängigkeiten hinzu oder erzeugt Review‑Markierungen.
-| Konfiguration | siehe unten
+| Description | Adds JAX‑RS client runtime dependencies or creates review markers.
+| Configuration | see below
 |===
 
-.Konfigurationsoptionen MigrateJaxRsClient
-[cols="1,1,3"]
-|===
-| Option | Typ | Beschreibung
+.Configuration options MigrateJaxRsClient
+[cols="1,1,3"]|===
+| option | Type | Description
 
 | `strategy`
 | `String`
-| `manual` (erzeugt Review‑Markierungen) oder `keep-jaxrs` (fügt Provider‑Dependencies hinzu). Default: `keep-jaxrs` (wenn `project.yaml` fehlt)
+| `manual` (creates review marks) or `keep-jaxrs` (adds provider dependencies). Default: `keep-jaxrs` (if `project.yaml` is missing)
 
 | `provider`
 | `String`
-| JAX-RS Provider bei `keep-jaxrs`: `jersey`, `resteasy`, `cxf`. Default: `jersey`
+| JAX-RS provider for `keep-jaxrs`: `jersey`, `resteasy`, `cxf`. Default: `jersey`
 
 | `providerVersion`
 | `String`
-| Version der Provider-Dependencies. Optional, nutzt eingebaute Defaults.
+| Version of the provider dependencies. Optional, uses built-in defaults.
 |===
 
-=== Rezept: GenerateJaxRsServerConfig
-
-[cols="1,3"]
-|===
+=== Recipe: GenerateJaxRsServerConfig
+[cols="1.3"]|===
 | Name | `com.github.rewrite.ejb.GenerateJaxRsServerConfig`
-| Beschreibung | Generiert provider-spezifische JAX-RS Server-Konfiguration für Spring Boot.
-| Voraussetzung | `jaxrs.strategy: keep-jaxrs` (Default)
+| Description | Generates provider-specific JAX-RS server configuration for Spring Boot.
+| Prerequisite | `jaxrs.strategy: keep-jaxrs` (default)
 |===
 
-Das Rezept scannt alle `@Path`-annotierten Klassen im Modul und generiert eine passende Spring Boot Konfiguration basierend auf dem gewählten Provider.
-
-.Konfigurationsoptionen GenerateJaxRsServerConfig
-[cols="1,1,3"]
-|===
-| Option | Typ | Beschreibung
+The recipe scans all `@Path` annotated classes in the module and generates an appropriate Spring Boot configuration based on the chosen provider.
+.Configuration Options GenerateJaxRsServerConfig
+[cols="1,1,3"]|===
+| option | Type | Description
 
 | `jaxrs.server.provider`
 | `String`
-| JAX-RS Provider: `jersey` (Default), `resteasy`, `cxf`. Bei fehlender Angabe wird der Provider aus Maven-Dependencies erkannt.
+| JAX-RS Providers: `jersey` (default), `resteasy`, `cxf`. If the information is missing, the provider is recognized from Maven dependencies.
 
 | `jaxrs.server.basePath`
 | `String`
-| Base path für alle Endpoints. Default: `/api`
+| Base path for all endpoints. Default: `/api`
 |===
 
-==== Provider-Implementierungen
-
-[cols="1,3,2"]
-|===
-| Provider | Generierte Konfiguration | Dependency
+==== Provider implementations
+[cols="1,3,2"]|===
+| Provider | Generated configuration | Dependency
 
 | Jersey
-| `JerseyConfiguration extends ResourceConfig` mit `@Component` + `@ApplicationPath`
+| `JerseyConfiguration extends ResourceConfig` with `@Component` + `@ApplicationPath`
 | `spring-boot-starter-jersey:3.4.1`
 
 | RESTEasy
-| `ResteasyConfiguration extends Application` mit `@ApplicationPath`
+| `ResteasyConfiguration extends Application` with `@ApplicationPath`
 | `resteasy-servlet-spring-boot-starter:6.3.0.Final`
 
 | CXF
-| `CxfJaxrsConfiguration` mit `@Configuration` + `@Bean JAXRSServerFactoryBean`
+| `CxfJaxrsConfiguration` with `@Configuration` + `@Bean JAXRSServerFactoryBean`
 | `cxf-spring-boot-starter-jaxrs:4.1.4`
 |===
 
-==== Provider Auto-Detection
-
-Wenn kein expliziter Provider konfiguriert ist, wird der Provider automatisch aus den Maven-Dependencies erkannt. Die Erkennung nutzt das effektive Maven-Modell (MavenResolutionResult) mit Fallback auf String-basierte POM-Suche.
-
-Bei **mehreren erkannten Providern** wird keine automatische Generierung durchgeführt. Stattdessen wird ein `@NeedsReview`-Kommentar im POM erzeugt mit Handlungsempfehlungen.
-
+==== Provider auto detection
+If no explicit provider is configured, the provider is automatically detected from the Maven dependencies. The detection uses the effective Maven model (MavenResolutionResult) with fallback to string-based POM search.
+If **multiple providers are detected**, automatic generation is not carried out. Instead, a `@NeedsReview` comment is created in the POM with recommendations for action.
 ==== Existing Config Detection
-
-Das Rezept erkennt vorhandene Konfigurationen und überspringt die Generierung:
-
-- Klassen mit Namen wie `*JerseyConfig*`, `*ResteasyConfig*`, `*CxfConfig*`
-- Klassen mit `@Configuration` die `ResourceConfig` oder `JAXRSServerFactoryBean` nutzen
-- Klassen die `jakarta.ws.rs.core.Application` oder `javax.ws.rs.core.Application` erweitern
-- Klassen mit `@ApplicationPath` Annotation (jakarta oder javax Namespace)
-
-.Beispiel: Generierte Jersey-Konfiguration
-[source,java]
-----
+The recipe detects existing configurations and skips generation:
+- Classes with names like `*JerseyConfig*`, `*ResteasyConfig*`, `*CxfConfig*`
+- Classes with `@Configuration` that use `ResourceConfig` or `JAXRSServerFactoryBean`
+- Classes that extend `jakarta.ws.rs.core.Application` or `javax.ws.rs.core.Application`
+- Classes with `@ApplicationPath` annotation (jakarta or javax namespace)
+.Example: Generated Jersey configuration
+[source, java]----
 package com.example.api;
 
 import jakarta.ws.rs.ApplicationPath;
@@ -242,18 +192,12 @@ public class JerseyConfiguration extends ResourceConfig {
 }
 ----
 
-=== Weitere JAX-RS Rezepte
-
-[cols="1,3"]
-|===
-| Name | Beschreibung
-
+=== More JAX-RS recipes
+[cols="1.3"]|===
+| Name | Description
 | `com.github.rewrite.ejb.MigrateJaxRsAnnotations`
-| Migriert `@Path`, `@GET/@POST/@PUT/@DELETE` zu Spring MVC Annotationen.
-
+| Migrates `@Path`, `@GET/@POST/@PUT/@DELETE` to Spring MVC annotations.
 | `com.github.rewrite.ejb.MigrateJaxRsParameterAnnotations`
-| Migriert `@PathParam`, `@QueryParam`, `@HeaderParam` zu Spring-Äquivalenten.
-
+| Migrates `@PathParam`, `@QueryParam`, `@HeaderParam` to Spring equivalents.
 | `com.github.rewrite.ejb.MigrateJaxRsResponseToResponseEntity`
-| Migriert `javax.ws.rs.core.Response` zu `ResponseEntity<T>`.
-|===
+| Migrates `javax.ws.rs.core.Response` to `ResponseEntity<T>`.|===

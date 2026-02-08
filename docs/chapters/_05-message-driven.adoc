@@ -1,18 +1,13 @@
-== Message-Driven Beans
-
-Message-Driven Beans (MDB) sind EJBs für asynchronen Nachrichteneingang. Sie sind containerverwaltet, werden über Activation Properties konfiguriert und laufen in einem JMS-Context mit Transaktionen und Redelivery-Semantik. In Spring wird dies durch `@JmsListener` und Listener-Container-Konfiguration abgebildet. Die Semantik ist ähnlich, aber nicht identisch: Konfiguration, Redelivery-Strategie, Acknowledge-Mode und Error-Handling müssen explizit geprüft werden.
-
+== Message Driven Beans
+Message-Driven Beans (MDB) are EJBs for asynchronous message input. They are container-managed, configured via activation properties and run in a JMS context with transactions and redelivery semantics. In Spring this is represented by `@JmsListener` and listener container configuration. The semantics are similar, but not identical: configuration, redelivery strategy, acknowledge mode and error handling must be explicitly checked.
 === @MessageDriven -> @Component + @JmsListener
-
-.Beispiel: VORHER (EJB)
-[source,java]
-----
+.Example: BEFORE (EJB)
+[source, java]----
 import javax.ejb.MessageDriven;
 import javax.ejb.ActivationConfigProperty;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
-
 @MessageDriven(activationConfig = {
     @ActivationConfigProperty(propertyName = "destinationType",
                               propertyValue = "javax.jms.Queue"),
@@ -22,23 +17,19 @@ import javax.jms.TextMessage;
                               propertyValue = "Auto-acknowledge")
 })
 public class ShipmentListener implements MessageListener {
-
-    @EJB
+@EJB
     private ShipmentService shipmentService;
-
-    @Override
+@Override
     public void onMessage(Message message) {
         if (message instanceof TextMessage textMessage) {
             ShipmentCommand cmd = parse(textMessage);
             shipmentService.register(cmd);
         }
     }
-}
-----
+}----
 
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+.Example: AFTER (Spring Boot)
+[source, java]----
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,7 +43,7 @@ public class ShipmentListener {
         this.shipmentService = shipmentService;
     }
 
-    @JmsListener(destination = "ShipmentQueue")
+@JmsListener(destination = "ShipmentQueue")
     @Transactional
     public void onMessage(ShipmentCommand command) {
         shipmentService.register(command);
@@ -60,16 +51,12 @@ public class ShipmentListener {
 }
 ----
 
-[NOTE]
-====
-Die MDB-Activation-Properties müssen in Spring auf Listener-Container-Properties abgebildet werden (Destination, Selector, Concurrency, Ack-Mode, Subscription). Die exakten Schlüssel variieren je nach Provider und müssen gegen die Messaging-Infrastruktur geprüft werden.
-====
+[NOTE]====
+The MDB activation properties must be mapped to listener container properties in Spring (Destination, Selector, Concurrency, Ack-Mode, Subscription). The exact keys vary depending on the provider and must be checked against the messaging infrastructure.====
 
-Die EJB‑Spezifikation erlaubt zusätzliche Activation‑Properties wie `clientId`, `subscriptionDurability` und `messageSelector`. Diese Werte sind in Spring nur wirksam, wenn sie in die konkrete Listener‑Container‑Konfiguration übertragen werden. Eine reine Annotation‑Migration ohne Container‑Konfiguration ändert das Laufzeitverhalten.
-
-.Beispiel: application.yml
-[source,yaml]
-----
+The EJB specification allows additional activation properties such as `clientId`, `subscriptionDurability` and `messageSelector`. These values ​​are only effective in Spring if they are transferred to the concrete listener container configuration. A pure annotation migration without container configuration changes the runtime behavior.
+.Example: application.yml
+[source,yaml]----
 spring:
   jms:
     listener:
@@ -77,15 +64,11 @@ spring:
       concurrency: 5-10
 ----
 
-=== Error Handling und Redelivery
-
-EJB setzt Redelivery über Transaktions-Rollback und Container-Strategien um. Spring nutzt ebenfalls Transaktionen, aber die Redelivery-Strategie hängt vom verwendeten Listener-Container und Provider ab.
-
-Die EJB‑Spezifikation beschreibt, dass Runtime‑Exceptions in einer Message‑Driven‑Bean die Bean‑Instanz in den Zustand „does not exist“ überführen. `@PreDestroy` ist in diesem Fall nicht garantiert. Ressourcen, die in `@PostConstruct` geöffnet werden, müssen deshalb so verwaltet werden, dass ein Ausfall einzelner Instanzen keine Leaks erzeugt.
-
-.Beispiel: VORHER (EJB)
-[source,java]
-----
+=== Error handling and redelivery
+EJB implements redelivery via transaction rollback and container strategies. Spring also uses transactions, but the redelivery strategy depends on the listener container and provider used.
+The EJB specification describes that runtime exceptions in a message-driven bean transfer the bean instance to the “does not exist” state. `@PreDestroy` is not guaranteed in this case. Resources that are opened in `@PostConstruct` must therefore be managed in such a way that the failure of individual instances does not cause leaks.
+.Example: BEFORE (EJB)
+[source, java]----
 import javax.ejb.MessageDriven;
 import javax.ejb.ActivationConfigProperty;
 import javax.annotation.Resource;
@@ -112,9 +95,8 @@ public class InvoiceListener implements MessageListener {
 }
 ----
 
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+.Example: AFTER (Spring Boot)
+[source, java]----
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -130,25 +112,20 @@ public class InvoiceListener {
 }
 ----
 
-[WARNING]
-====
-Redelivery-Backoff, Dead Letter Queues und Acknowledge-Strategien sind provider-abhängig. Die Migration muss diese Einstellungen explizit prüfen und darf sich nicht auf Default-Verhalten verlassen.
+[WARNING]====
+Redelivery backoff, dead letter queues and acknowledge strategies are provider-dependent. The migration must explicitly check these settings and must not rely on default behavior.
 ====
 
-=== Automatisierte Migration
-
-[cols="1,3"]
-|===
+=== Automated migration
+[cols="1.3"]|===
 | Name | `de.example.rewrite.ejb.MigrateMessageDrivenToJmsListener`
-| Beschreibung | Transformiert `@MessageDriven` zu `@Component` mit `@JmsListener` auf der `onMessage`-Methode.
-| Konfiguration | keine
-|===
+| Description | Transforms `@MessageDriven` to `@Component` with `@JmsListener` on `onMessage` method.
+| Configuration | no|===
 
-[cols="1,3"]
-|===
+[cols="1.3"]|===
 | Name | `de.example.rewrite.ejb.MigrateMessaging`
-| Beschreibung | Kombiniert `MigrateMessageDrivenToJmsListener` und `AddEnableJmsAndScheduling`.
-| Konfiguration | keine
+| Description | Combines `MigrateMessageDrivenToJmsListener` and `AddEnableJmsAndScheduling`.
+| Configuration | none
 |===
 
 ---

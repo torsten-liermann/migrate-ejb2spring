@@ -1,12 +1,9 @@
-== Ressourcen
-
-Dieses Kapitel sammelt Materialien, die bei der Migration hilfreich sind. Es ersetzt keine Spezifikation, sondern verweist auf die relevanten Quellen und interne Dokumente.
-
-* Jakarta Enterprise Beans 4.0 Spezifikation
-* Jakarta Persistence 3.x Spezifikation
-* Spring Boot Referenzdokumentation
-* Spring Framework Reference (Transaktionen, AOP, Bean Lifecycle)
+== Resources
+This chapter collects materials that are helpful during migration. It does not replace any specification, but rather refers to the relevant sources and internal documents.
+* Jakarta Enterprise Beans 4.0 specification
+* Jakarta Persistence 3.x specification
+* Spring Boot reference documentation
+* Spring Framework Reference (Transactions, AOP, Bean Lifecycle)
 * Migrating Enterprise Applications to Spring (SpringSource, 2008)
-* Projektinterne Migrationsrezepte und Review-Reports
-
-In diesem Repository befinden sich zusätzliche Analyse- und Planungsdokumente im Ordner `internal/`.
+* Project-internal migration recipes and review reports
+In this repository, additional analysis and planning documents are located in the `internal/` folder.

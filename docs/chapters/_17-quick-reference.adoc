@@ -1,52 +1,37 @@
-== Schnellreferenz
-
-Dieses Kapitel fasst häufige Migrationen als kurze Orientierung zusammen. Die Detailerläuterungen stehen in den thematischen Kapiteln.
-
-[cols="2,2,3"]
-|===
-| Jakarta EE | Spring Boot | Hinweis
-
+== Quick reference
+This chapter summarizes common migrations as a brief orientation. The detailed explanations can be found in the thematic chapters.
+[cols="2,2,3"]|===
+| Jakarta EE | Spring Boot | Note
 | `@Stateless`
 | `@Service`
-| Semantik zu Lebenszyklus und Thread-Sicherheit prüfen
-
+| Check lifecycle and thread safety semantics
 | `@Singleton`
 | `@Service`
-| EJB-Locks entfallen, Synchronisation explizit definieren
-
+| EJB locks are no longer necessary and synchronization can be defined explicitly
 | `@Stateful`
-| Session-/Request-gebundene State-Modelle
-| Kein direkter Ersatz, fachlich neu modellieren
-
+| Session/request-bound state models
+| No direct replacement, technically remodeled
 | `@TransactionAttribute`
 | `@Transactional`
-| Propagation und Rollback-Regeln prüfen
-
+| Check propagation and rollback rules
 | `@MessageDriven`
 | `@JmsListener`
-| Listener-Container, Acknowledge-Modus, Concurrency prüfen
-
+| Listener container, acknowledge mode, check concurrency
 | `@Schedule`
 | `@Scheduled`
-| Cron-Syntax und Zeitverhalten prüfen
-
+| Check cron syntax and timing behavior
 | `@Asynchronous`
 | `@Async`
-| Proxy-Modelle und Kontextweitergabe prüfen
-
+| Check proxy models and context propagation
 | `@RolesAllowed`
 | `@PreAuthorize`
-| Rollenpräfixe und SecurityContext prüfen
-
-| JAX-RS Ressourcen
-| Spring MVC Controller
-| Pfad- und Exception-Mapping prüfen
-
+| Check role prefixes and SecurityContext
+| JAX-RS resources
+| Spring MVC controllers
+| Check path and exception mapping
 | JSON-B
 | Jackson
-| Annotationen und Serialisierung prüfen
-
+| Check annotations and serialization
 | JNDI Lookup
 | `@ConfigurationProperties`
-| Werte in `application.properties` überführen
-|===
+| Transfer values ​​to `application.properties`|===

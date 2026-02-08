@@ -1,30 +1,17 @@
 == CDI (Contexts and Dependency Injection)
-
-CDI ist in Jakarta EE das zentrale Modell für Dependency Injection, Scopes und Eventing. Spring bietet eine ähnliche, aber nicht identische DI-Infrastruktur. Eine Migration muss daher Scopes, Producer, Qualifier und Events gezielt abbilden.
-
-=== Scopes und Lebensdauer
-
-CDI-Scopes wie `@ApplicationScoped`, `@RequestScoped` und `@SessionScoped` definieren die Lebensdauer der Bean. In Spring gibt es analoge Scopes, allerdings ist deren Nutzung stark vom Web-Stack abhängig. Für rein technische Beans wird in Spring häufig der Default-Scope (Singleton) verwendet. Scopes sollten daher nur dort übernommen werden, wo fachliche oder technische Lebensdauer erforderlich ist.
-
-=== Producer und Qualifier
-
-CDI-Producer (`@Produces`) liefern Beans, die über Qualifier auswählbar sind. In Spring wird dies in der Regel über `@Bean`-Methoden und `@Qualifier` umgesetzt. Qualifier können jedoch in CDI deutlich komplexer sein, etwa mit Annotation-Attributen. In solchen Fällen muss geprüft werden, ob Spring-Qualifier ausreichend sind oder ob eine explizite Bean-Registrierung pro Variante nötig ist.
-
-Producer‑Methoden mit `InjectionPoint`‑Auswertung sind in CDI verbreitet, etwa um je nach Injektionsstelle unterschiedliche Instanzen zu erzeugen. Spring bietet hierfür kein direktes Pendant. Solche Fälle müssen in der Migration über explizite Fabriken, `FactoryBean`‑Implementierungen oder separate Bean‑Definitionen modelliert werden.
-
-CDI‑`@Alternative` und `@Specializes` sind deklarative Mechanismen zur Auswahl von Implementierungen. In Spring werden vergleichbare Entscheidungen über Profile, Qualifier oder Primary‑Beans abgebildet. Die Auswahlregeln sind nicht identisch und müssen für jede Alternative geprüft werden.
-
-=== CDI Events
-
-`Event<T>` und `@Observes` bilden ein asynchrones oder synchrones Eventing-Modell ab. Spring bietet mit `ApplicationEventPublisher` und `@EventListener` eine funktional ähnliche Lösung, jedoch mit anderen Semantiken für generische Typen, Ordering und Threading. Die Migration sollte insbesondere prüfen, ob Events in EJB asynchron oder transaktional gebunden sind.
-
-CDI kennt `@ObservesAsync` für asynchrone Event‑Verarbeitung und eine definierte Zustellreihenfolge innerhalb der CDI‑Infrastruktur. Spring unterscheidet zwischen synchronen Listenern und explizit asynchronen Listenern (`@Async`), wobei die Ausführung vom Task‑Executor abhängt. Diese Unterschiede müssen bei der Migration berücksichtigt werden, wenn Event‑Reihenfolgen oder Transaktionsgrenzen fachlich relevant sind.
-
-=== Beispiel
-
-.Beispiel: VORHER (CDI)
-[source,java]
-----
+CDI is the central model for dependency injection, scopes and eventing in Jakarta EE. Spring offers a similar, but not identical, DI infrastructure. A migration must therefore specifically map scopes, producers, qualifiers and events.
+=== Scopes and lifespan
+CDI scopes such as `@ApplicationScoped`, `@RequestScoped` and `@SessionScoped` define the lifetime of the bean. There are analog scopes in Spring, but their use depends heavily on the web stack. The default scope (singleton) is often used in Spring for purely technical beans. Scopes should therefore only be adopted where professional or technical durability is required.
+=== Producer and Qualifier
+CDI producers (`@Produces`) deliver beans that can be selected via qualifiers. In Spring this is usually implemented via `@Bean` methods and `@Qualifier`. However, qualifiers in CDI can be much more complex, for example with annotation attributes. In such cases, it must be checked whether Spring qualifiers are sufficient or whether an explicit bean registration per variant is necessary.
+Producer methods with “InjectionPoint” evaluation are common in CDI, for example to create different instances depending on the injection site. Spring does not offer a direct counterpart for this. Such cases must be modeled in the migration using explicit factories, `FactoryBean` implementations or separate bean definitions.
+CDI‑`@Alternative` and `@Specializes` are declarative mechanisms for selecting implementations. In Spring, comparable decisions are made using profiles, qualifiers or primary beans. The selection rules are not identical and must be checked for each alternative.
+=== CDI events
+`Event<T>` and `@Observes` represent an asynchronous or synchronous eventing model. Spring offers a functionally similar solution with `ApplicationEventPublisher` and `@EventListener`, but with different semantics for generic types, ordering and threading. The migration should in particular check whether events in EJB are asynchronously or transactionally bound.
+CDI knows `@ObservesAsync` for asynchronous event processing and a defined delivery order within the CDI infrastructure. Spring differentiates between synchronous listeners and explicitly asynchronous listeners (`@Async`), where execution depends on the task executor. These differences must be taken into account during migration if event sequences or transaction boundaries are technically relevant.
+=== Example
+.Example: BEFORE (CDI)
+[source, java]----
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import javax.enterprise.context.ApplicationScoped;
@@ -41,9 +28,8 @@ public class CargoEventPublisher {
 }
 ----
 
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+.Example: AFTER (Spring Boot)
+[source, java]----
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 

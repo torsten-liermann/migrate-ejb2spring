@@ -1,31 +1,19 @@
-== OpenRewrite Bestandsaufnahme und Migrationslücken
-
-Dieses Kapitel dokumentiert die Analyse der vorhandenen Rezepte im Kontext der Cargo-Tracker-Referenzanwendung auf Jakarta EE 10. Die Tests wurden mit einem eigenen `rewrite.yml` durchgeführt, das Jakarta-Namespace-Umstellungen berücksichtigt. Die Ergebnisse dienen als Grundlage für Priorisierung und Lückenbewertung.
-
-=== Zusammenfassung der Migration (Stand: Januar 2026, M7 abgeschlossen)
-
-Die Migration im Worktree erzeugt 91 geänderte Dateien und einen Patch von rund 4.100 Zeilen. Der Quellcode lässt sich kompilieren. Review‑Markierungen werden je Modul in `MIGRATION-REVIEW.md` gesammelt, aktuell 23 Items (7 Konfiguration, 16 Review‑Kategorien).
-
-=== Erfasste Transformationen
-
-Die Rezepte decken zentrale EJB- und CDI-Patterns ab, darunter `@Stateless` nach `@Service`, CDI-Injektionen, JAX-RS-Ressourcen sowie Transaktions- und Event-Mappings. Die Mengen variieren je nach Modul, sind aber in Cargo Tracker mehrfach vertreten (beispielsweise 8 `@Stateless`-Services, 96 Injektionen und 5 JAX-RS-Pfade).
-
-=== Review‑Markierungen
-
-Folgende Bereiche werden durch Rezepte erkannt und mit `@NeedsReview` gekennzeichnet:
-
-* JSF‑UI‑Logik
-* Jakarta‑Batch‑Jobs
-* WebSocket‑Endpunkte
-* JNDI‑Lookups für Ressourcen und Konfiguration
-
-Diese Markierungen werden im Report zusammengeführt und dienen als strukturierte Prüfliste.
-
-=== Beispiel: erfolgreiche Migration einer REST-Ressource
-
-.Beispiel: VORHER (EJB)
-[source,java]
-----
+== OpenRewrite inventory and migration gaps
+This chapter documents the analysis of the existing recipes in the context of the Cargo Tracker reference application on Jakarta EE 10. The tests were carried out with a custom `rewrite.yml` that takes Jakarta namespace changes into account. The results serve as a basis for prioritization and gap assessment.
+=== Summary of the migration (as of January 2026, M7 completed)
+The migration in the worktree creates 91 changed files and a patch of around 4,100 lines. The source code can be compiled. Review marks are collected for each module in `MIGRATION-REVIEW.md`, currently 23 items (7 configuration, 16 review categories).
+=== Captured transformations
+Recipes cover core EJB and CDI patterns, including @Stateless to @Service, CDI injections, JAX-RS resources, and transaction and event mappings. The amounts vary depending on the module, but are represented several times in Cargo Tracker (e.g. 8 @Stateless services, 96 injections and 5 JAX-RS paths).
+=== Review marks
+The following areas are recognized by recipes and marked with `@NeedsReview`:
+* JSF UI logic
+* Jakarta batch jobs
+* WebSocket endpoints
+* JNDI lookups for resources and configuration
+These markings are brought together in the report and serve as a structured checklist.
+=== Example: successful migration of a REST resource
+.Example: BEFORE (EJB)
+[source, java]----
 @Stateless
 @Path("/graph-traversal")
 public class GraphTraversalService {
@@ -35,13 +23,12 @@ public class GraphTraversalService {
     @Path("/shortest-path")
     public List<TransitPath> findShortestPath(
             @QueryParam("origin") String origin,
-            @QueryParam("destination") String dest) { ... }
+@QueryParam("destination") String dest) { ... }
 }
 ----
 
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+.Example: AFTER (Spring Boot)
+[source, java]----
 @Service
 @RequestMapping("/graph-traversal")
 public class GraphTraversalService {

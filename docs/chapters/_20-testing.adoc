@@ -1,14 +1,9 @@
 == Tests
-
-EJB-Anwendungen werden häufig mit Arquillian oder containerbasierten Integrationstests geprüft. Spring Boot stellt mit `@SpringBootTest`, `@DataJpaTest` und weiteren Test-Slices ein anderes Testmodell bereit. Die Migration sollte bewusst zwischen fachlichen Integrationstests und isolierten Unit-Tests unterscheiden.
-
-=== Containerbasierte Tests
-
-Arquillian startet typischerweise einen Application Server und deployt die EJB-Anwendung. In Spring Boot wird der Kontext innerhalb des Tests gestartet und kann über Testcontainers mit externen Abhängigkeiten wie Datenbanken verbunden werden.
-
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+EJB applications are often tested using Arquillian or container-based integration tests. Spring Boot provides a different test model with `@SpringBootTest`, `@DataJpaTest` and other test slices. The migration should consciously differentiate between technical integration tests and isolated unit tests.
+=== Container-based testing
+Arquillian typically starts an application server and deploys the EJB application. In Spring Boot, the context is launched within the test and can be connected to external dependencies such as databases via test containers.
+.Example: AFTER (Spring Boot)
+[source, java]----
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -18,10 +13,7 @@ class BookingFlowTest {
 }
 ----
 
-=== Testcontainers für Infrastruktur
-
-Für Datenbanken oder Messaging kann Testcontainers genutzt werden. Wenn im Projekt Development-time Services vorgesehen sind, müssen die Build- und Startpfade dafür explizit dokumentiert werden. Das ersetzt nicht die Infrastrukturkonfiguration für produktive Umgebungen.
-
-=== Test-Stubs und Konfiguration
-
-EJB-Tests nutzen oft Stubs über CDI-Producer oder Deployment-Deskriptoren. In Spring werden Test-Stubs typischerweise über `@TestConfiguration`, `@MockBean` oder über Profile eingebunden. Die Entscheidung hängt davon ab, ob die Stubs nur im Testkontext oder auch in integrierten Umgebungen benötigt werden.
+=== Test container for infrastructure
+Test containers can be used for databases or messaging. If development-time services are planned in the project, the build and start paths must be explicitly documented. This does not replace infrastructure configuration for productive environments.
+=== Test stubs and configuration
+EJB tests often use stubs via CDI producers or deployment descriptors. In Spring, test stubs are typically integrated via `@TestConfiguration`, `@MockBean` or via profiles. The decision depends on whether the stubs are only needed in the test context or also in integrated environments.

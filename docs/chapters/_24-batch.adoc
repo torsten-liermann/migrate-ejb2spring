@@ -1,102 +1,76 @@
-== Jakarta Batch
-
-Jakarta Batch (JSR 352) definiert ein Job-Modell mit Schritten, Checkpoints und einem standardisierten Repository. Spring Batch bietet ein eigenes, stärker konfigurierbares Modell. In diesem Projekt werden Jakarta‑Batch‑Klassen durch Marker‑Rezepte identifiziert und mit `@NeedsReview` gekennzeichnet.
-
-.Spezifikationsreferenzen
-****
+==Jakarta Batch
+Jakarta Batch (JSR 352) defines a job model with steps, checkpoints and a standardized repository. Spring Batch offers its own, more configurable model. In this project, Jakarta batch classes are identified by marker recipes and marked with `@NeedsReview`.
+.Specification references****
 * https://jakarta.ee/specifications/batch/2.1/jakarta-batch-spec-2.1.html[Jakarta Batch 2.1 Spec]
 * https://jakarta.ee/specifications/batch/2.1/jakarta-batch-spec-2.1.html#job-specification-language[Jakarta Batch 2.1 - §8 Job Specification Language]
 * https://jakarta.ee/specifications/batch/2.1/jakarta-batch-spec-2.1.html#chunk-processing[Jakarta Batch 2.1 - §9 Chunk Processing]
-* https://docs.spring.io/spring-batch/reference/[Spring Batch Reference]
-****
+* https://docs.spring.io/spring-batch/reference/[Spring Batch Reference]****
 
-=== Unterschiede in der Modellierung
+=== Differences in modeling
+Jakarta Batch uses `@BatchProperty`, `JobOperator` and XML-based job definitions. Spring Batch models jobs as a Java configuration or via its own DSLs. Checkpoint mechanisms, restart logic and parameter transfer differ in details.
+Spring Batch works with a job repository that persists the execution state. The decision about database schema, restart semantics and chunk sizes is part of the migration, as runtime behavior cannot be reproduced without these settings.
+=== Migration context
+Migrating from Jakarta Batch to Spring Batch includes analyzing existing job definitions, modeling the steps as Spring Batch configurations, and defining repository and restart strategies. The technical meaning of the individual steps and their checkpoint logic must be understood before a target configuration is created.
+=== Automation in the project
+Both recipes are part of the main pipeline `MigrateEjbToSpring` and run automatically:
+* `com.github.rewrite.ejb.MarkJakartaBatchForMigration` marks Jakarta batch classes with `@NeedsReview`.
+* `com.github.rewrite.ejb.GenerateSpringBatchConfigFromJsl` generates a Spring batch configuration class from JSL job XML
+  `BatchJobsConfiguration` with `Job` and `Step` skeletons.
+No additional configuration required in `project.yaml`.
+The stub generator is intentionally conservative. It creates a @NeedsReview flag at the configuration class level
+(`NeedsReview.Category.MANUAL_MIGRATION`) and sets additional TODO notes if the JSL definition is not clear
+can be transferred into a linear `JobBuilder` chain.
+==== JSL parsing and output scope
+The generator processes job XML from `src/main/resources` (typically `META-INF/batch-jobs`) and creates `Job`/`Step` beans
+with minimal wiring:
+* `chunk` steps are created as `StepBuilder(...).<Object, Object>chunk(...)`.
+* `batchlet` steps are created as `tasklet(...)`.
+* `reader`/`processor`/`writer` references are taken as `@Qualifier` parameters.
+Missing references lead to explicit TODO comments and avoid tacit misdefinitions.
+==== Flows and transitions
+JSL transitions (`next` attributes or `<next>`, `<stop>`, `<end>`, `<fail>`) as well
+`<split>`, `<flow>`, `<decision>` are marked as “complex”. In these cases there is no automatic
+`JobBuilder` chaining logic generated; instead, a TODO note is inserted in the generated job.
+Migrating such flows requires explicit modeling with Spring Batch (Flow‑API, JobExecutionDecider,
+partitioning). These steps remain intentionally manual.
+=== Checkpoints for the project
+Before migration, the existing batch jobs must be captured:
+[cols="1.3"]|===
+| aspect | Test
 
-Jakarta Batch nutzt `@BatchProperty`, `JobOperator` und XML-basierte Job-Definitionen. Spring Batch modelliert Jobs als Java-Konfiguration oder über eigene DSLs. Checkpoint-Mechanismen, Restart-Logik und Parameterübergabe unterscheiden sich in Details.
-
-Spring Batch arbeitet mit einem Job‑Repository, das den Ausführungszustand persistiert. Die Entscheidung über Datenbank‑Schema, Restart‑Semantik und Chunk‑Größen ist Teil der Migration, da das Laufzeitverhalten ohne diese Einstellungen nicht reproduzierbar ist.
-
-=== Migrationskontext
-
-Die Migration von Jakarta Batch zu Spring Batch umfasst die Analyse bestehender Job-Definitionen, die Modellierung der Schritte als Spring-Batch-Konfigurationen sowie die Definition von Repository- und Restart-Strategien. Die fachliche Bedeutung der einzelnen Schritte und ihre Checkpoint-Logik müssen verstanden werden, bevor eine Zielkonfiguration erstellt wird.
-
-=== Automatisierung im Projekt
-
-Beide Recipes sind Teil der Hauptpipeline `MigrateEjbToSpring` und laufen automatisch:
-
-* `com.github.rewrite.ejb.MarkJakartaBatchForMigration` markiert Jakarta‑Batch‑Klassen mit `@NeedsReview`.
-* `com.github.rewrite.ejb.GenerateSpringBatchConfigFromJsl` erzeugt aus JSL-Job-XML eine Spring‑Batch‑Konfigurationsklasse
-  `BatchJobsConfiguration` mit `Job`- und `Step`‑Skeletons.
-
-Keine zusätzliche Konfiguration in `project.yaml` erforderlich.
-
-Der Stub-Generator ist bewusst konservativ. Er erzeugt eine `@NeedsReview`‑Markierung auf Konfigurationsklassebene
-(`NeedsReview.Category.MANUAL_MIGRATION`) und setzt zusätzliche TODO‑Hinweise, wenn die JSL‑Definition nicht eindeutig
-in eine lineare `JobBuilder`‑Kette überführt werden kann.
-
-==== JSL-Parsing und Ausgabeumfang
-
-Der Generator verarbeitet Job‑XML aus `src/main/resources` (typisch `META-INF/batch-jobs`) und erzeugt `Job`/`Step`‑Beans
-mit minimalem Wiring:
-
-* `chunk`‑Steps werden als `StepBuilder(...).<Object, Object>chunk(...)` erzeugt.
-* `batchlet`‑Steps werden als `tasklet(...)` erzeugt.
-* `reader`/`processor`/`writer`‑Referenzen werden als `@Qualifier`‑Parameter übernommen.
-
-Fehlende Referenzen führen zu expliziten TODO‑Kommentaren und vermeiden stillschweigende Fehldefinitionen.
-
-==== Flows und Transitionen
-
-JSL‑Transitionen (`next`‑Attribute oder `<next>`, `<stop>`, `<end>`, `<fail>`) sowie
-`<split>`, `<flow>`, `<decision>` werden als „komplex“ markiert. In diesen Fällen wird keine automatische
-`JobBuilder`‑Chaining‑Logik erzeugt; stattdessen wird ein TODO‑Hinweis im generierten Job eingefügt.
-
-Die Migration solcher Flows erfordert eine explizite Modellierung mit Spring Batch (Flow‑API, JobExecutionDecider,
-Partitioning). Diese Schritte bleiben bewusst manuell.
-
-=== Prüfpunkte für das Projekt
-
-Vor der Migration müssen die vorhandenen Batch-Jobs erfasst werden:
-
-[cols="1,3"]
-|===
-| Aspekt | Prüfung
-
-| Job-Definitionen
-| Welche JSL-Dateien existieren in `META-INF/batch-jobs/`?
+| Job definitions
+| Which JSL files exist in `META-INF/batch-jobs/`?
 
 | Step-Typen
-| Welche Steps sind Chunk-basiert, welche Batchlet?
+| Which steps are chunk-based, which are batchlet-based?
 
 | Checkpoint-Strategie
-| Welche `item-count` oder Custom-Checkpoint-Algorithmen werden verwendet?
+| Which `item-count` or custom checkpoint algorithms are used?
 
 | Job-Parameter
-| Welche Parameter werden über `JobOperator.start()` übergeben?
+| Which parameters are passed via `JobOperator.start()`?
 
 | Restart-Semantik
-| Werden Jobs nach Fehlern neu gestartet (Checkpoint-Recovery)?
+| Are jobs restarted after errors (checkpoint recovery)?
 
 | Partitioning
 | Werden Steps partitioniert (`<partition>`)?
 |===
 
 === Mapping Jakarta Batch → Spring Batch
-
-[cols="1,2,2"]
-|===
-| Jakarta Batch | Spring Batch | Hinweis
+[cols="1,2,2"]|===
+| Jakarta Batch | Spring Batch | Note
 
 | `@BatchProperty`
 | `@Value("#{jobParameters['name']}")`
-| SpEL-basierte Parameter-Injection
+| SpEL-based parameter injection
 
 | `JobOperator`
 | `JobLauncher`
-| Unterschiedliche API
+| Different API
 
 | JSL (XML)
-| Java-Config oder XML
+| Java-Config or XML
 | Java-Config bevorzugt
 
 | `ItemReader/Writer`

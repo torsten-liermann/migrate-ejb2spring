@@ -1,17 +1,12 @@
-# Jakarta WebSocket zu Spring WebSocket – Migrationshinweise
-
-Das Rezept `MarkWebSocketForMigration` markiert Klassen mit `@ServerEndpoint` oder `@ClientEndpoint` durch `@NeedsReview`. Die folgenden Optionen dienen als Orientierung für die Migration.
-
-## Optionen im Projektkontext
-
-| Option | Beschreibung | Hinweis |
+# Jakarta WebSocket to Spring WebSocket migration notes
+The `MarkWebSocketForMigration` recipe marks classes with `@ServerEndpoint` or `@ClientEndpoint` with `@NeedsReview`. The following options serve as a guide for migration.
+## Options in project context
+| option | Description | Note |
 |---|---|---|
-| A | `@ServerEndpoint` beibehalten und im Spring‑Boot‑Runtime betreiben | Separater WebSocket‑Container, keine Spring‑Injection ohne zusätzliche Konfiguration |
-| B | Migration auf Spring‑WebSocket‑Handler | Umstellung auf Spring‑API erforderlich |
-
-## Option A: `@ServerEndpoint` beibehalten
-
-Beispiel: Jakarta WebSocket
+| A | Keep `@ServerEndpoint` and run it in the Spring Boot runtime | Separate WebSocket container, no Spring injection without additional configuration |
+| B | Migrating to Spring WebSocket Handler | Switching to Spring API required |
+## Option A: Keep `@ServerEndpoint`
+Example: Jakarta WebSocket
 ```java
 import jakarta.websocket.*;
 import jakarta.websocket.server.ServerEndpoint;
@@ -30,7 +25,7 @@ public class TrackingEndpoint {
 }
 ```
 
-Beispiel: Spring Boot mit `@ServerEndpoint`
+Example: Spring Boot with `@ServerEndpoint`
 ```java
 import jakarta.websocket.server.ServerEndpoint;
 
@@ -39,9 +34,8 @@ public class TrackingEndpoint {
 }
 ```
 
-Wird `ServerEndpointExporter` verwendet, erstellt der WebSocket‑Container die Endpoint‑Instanzen. Spring‑Injection steht in diesem Modell nur über einen Configurator zur Verfügung und muss projektspezifisch geprüft werden.
-
-Beispiel: `ServerEndpointExporter`
+When `ServerEndpointExporter` is used, the WebSocket container creates the endpoint instances. In this model, Spring Injection is only available via a configurator and must be checked on a project-specific basis.
+Example: `ServerEndpointExporter`
 ```java
 @Configuration
 public class WebSocketConfig {
@@ -53,11 +47,9 @@ public class WebSocketConfig {
 }
 ```
 
-Bei WAR‑Deployments in externe Container können Konflikte mit der container‑eigenen Endpoint‑Registrierung entstehen. Ob diese Option im Zielbetrieb zulässig ist, ist projektspezifisch zu entscheiden.
-
-## Option B: Spring‑WebSocket‑Handler
-
-Beispiel: Spring‑Handler
+WAR deployments into external containers can cause conflicts with the container's own endpoint registry. Whether this option is permitted in the target operation must be decided on a project-specific basis.
+## Option B: Spring WebSocket handler
+Example: Spring handler
 ```java
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
@@ -77,7 +69,7 @@ public class TrackingHandler extends TextWebSocketHandler {
 }
 ```
 
-Beispiel: Registrierung
+Example: Registration
 ```java
 @Configuration
 @EnableWebSocket
@@ -96,20 +88,16 @@ public class WebSocketConfig implements WebSocketConfigurer {
 }
 ```
 
-Spring WebSocket nutzt eine Handler‑API statt Annotationen wie `@OnMessage`. Pfadparameter müssen aus der URI extrahiert werden.
-
-## Begriffliche Zuordnung (Orientierung)
-
+Spring WebSocket uses a handler API instead of annotations like @OnMessage. Path parameters must be extracted from the URI.
+## Conceptual assignment (orientation)
 | Jakarta WebSocket | Spring WebSocket |
 |---|---|
-| `@ServerEndpoint` | `WebSocketHandler` + Konfiguration |
+| `@ServerEndpoint` | `WebSocketHandler` + configuration |
 | `@OnOpen` | `afterConnectionEstablished()` |
 | `@OnMessage` | `handleTextMessage()` / `handleBinaryMessage()` |
 | `@OnClose` | `afterConnectionClosed()` |
 | `@OnError` | `handleTransportError()` |
 | `Session` | `WebSocketSession` |
-
-## Quellen
-
+## Sources
 - https://jakarta.ee/specifications/websocket/
 - https://docs.spring.io/spring-framework/reference/web/websocket.html

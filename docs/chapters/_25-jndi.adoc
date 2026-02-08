@@ -1,16 +1,10 @@
 == JNDI
-
-EJB-Anwendungen binden Ressourcen häufig über JNDI-Namen ein, etwa DataSources, JMS-Destinations oder Konfigurationswerte. In Spring Boot werden diese Werte in `application.properties` oder `application.yml` erfasst und über Property-Binding injiziert. Die Migration ist daher immer auch eine Konfigurationsmigration.
-
-=== JNDI-gebundene Ressourcen
-
-JNDI-Namen spiegeln die Container-Konfiguration wider. Sie müssen in Spring Boot in konkrete Property-Namen übersetzt werden. Für DataSources ist das meist `spring.datasource.*`, für JMS-Destinations häufig eine eigene `@ConfigurationProperties`-Klasse.
-
-Im Projekt werden JNDI‑Lookups durch die Rezepte erkannt und mit `@NeedsReview` markiert. Die konkrete Zuordnung zu Properties hängt von der bestehenden Server‑Konfiguration ab und ist projektbezogen zu validieren.
-
-.Beispiel: VORHER (EJB)
-[source,java]
-----
+EJB applications often include resources using JNDI names, such as DataSources, JMS destinations or configuration values. In Spring Boot, these values ​​are captured in `application.properties` or `application.yml` and injected via property binding. The migration is therefore always a configuration migration.
+=== JNDI bound resources
+JNDI names reflect the container configuration. They need to be translated into concrete property names in Spring Boot. For DataSources this is usually `spring.datasource.*`, for JMS destinations it is often a separate `@ConfigurationProperties` class.
+In the project, JNDI lookups are recognized by the recipes and marked with `@NeedsReview`. The specific assignment to properties depends on the existing server configuration and must be validated on a project-specific basis.
+.Example: BEFORE (EJB)
+[source, java]----
 import javax.annotation.Resource;
 import javax.sql.DataSource;
 
@@ -21,9 +15,8 @@ public class BillingRepository {
 }
 ----
 
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+.Example: AFTER (Spring Boot)
+[source, java]----
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -37,20 +30,15 @@ public class BillingRepository {
 }
 ----
 
-Die eigentliche Verknüpfung erfolgt über Konfiguration:
-
-.Beispiel: application.properties
-[source,properties]
-----
+The actual linking takes place via configuration:
+.Example: application.properties
+[source, properties]----
 spring.datasource.url=jdbc:postgresql://localhost:5432/billing
 spring.datasource.username=billing
 spring.datasource.password=secret
 ----
 
-=== Konfigurationswerte
-
-JNDI kann in EJB auch für einfache Strings oder Flags verwendet werden. In Spring sollte dies durch `@ConfigurationProperties` ersetzt werden, um eine klare, typisierte Konfiguration zu erhalten.
-
-=== JMS‑Ressourcen
-
-JMS‑ConnectionFactory und Destinations werden in EJB häufig über JNDI gebunden. In Spring Boot werden ConnectionFactories in der Regel über Starter‑Konfiguration erstellt und über Properties gesteuert. Destinations werden typischerweise als String‑Namen in `@JmsListener` genutzt und müssen mit den Messaging‑Konfigurationen abgeglichen werden. Die Migration erfordert eine konsistente Abbildung von JNDI‑Namen auf Properties und Listener‑Konfigurationen.
+=== Configuration values
+JNDI can also be used in EJB for simple strings or flags. In Spring this should be replaced with `@ConfigurationProperties` to have a clear, typed configuration.
+=== JMS resources
+JMS ConnectionFactory and Destinations are often bound via JNDI in EJB. In Spring Boot, ConnectionFactories are usually created via starter configuration and controlled via properties. Destinations are typically used as string names in @JmsListener and need to be matched to messaging configurations. The migration requires a consistent mapping of JNDI names to properties and listener configurations.

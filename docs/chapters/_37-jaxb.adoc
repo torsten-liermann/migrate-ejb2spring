@@ -1,9 +1,5 @@
 == JAXB
-
-JAXB wird in Jakarta EE häufig für XML-Bindings genutzt. Spring Boot unterstützt JAXB weiterhin, benötigt aber je nach Java-Version zusätzliche Abhängigkeiten, da JAXB aus dem JDK ausgelagert wurde. Die Migration ist in der Regel gering, erfordert aber eine bewusste Abhängigkeitsprüfung.
-
+JAXB is widely used for XML bindings in Jakarta EE. Spring Boot still supports JAXB, but requires additional dependencies depending on the Java version because JAXB has been moved out of the JDK. Migration is typically minor but requires deliberate dependency checking.
 === JAXB in Spring Boot
-
-Falls JAXB-Klassen bereits vorhanden sind, können sie meist unverändert weiter genutzt werden. In Build-Konfigurationen muss jedoch sichergestellt werden, dass `jakarta.xml.bind`-Abhängigkeiten im Classpath liegen. Alternativ kann Jackson XML verwendet werden, wenn die Anwendung bereits auf Jackson setzt.
-
-Die Migration sollte prüfen, ob JAXB für externe XML-Verträge verwendet wird und ob sich die Serialisierungsregeln ändern dürfen.
+If JAXB classes already exist, they can usually continue to be used unchanged. However, build configurations need to ensure that `jakarta.xml.bind` dependencies are in the classpath. Alternatively, Jackson XML can be used if the application already relies on Jackson.
+The migration should check whether JAXB is used for external XML contracts and whether the serialization rules are allowed to change.

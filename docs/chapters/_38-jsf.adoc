@@ -1,52 +1,39 @@
 == JSF
-
-JSF ist ein komponentenbasiertes UI‑Framework mit serverseitigem State und starkem Containerbezug. Spring Boot bietet keine direkte JSF‑Integration als Standard. Eine Migration erfordert daher eine bewusste Entscheidung für das UI‑Modell und die Laufzeitumgebung.
-
-.Spezifikationsreferenzen
-****
+JSF is a component-based UI framework with server-side state and strong container reference. Spring Boot does not provide direct JSF integration as standard. A migration therefore requires a conscious decision for the UI model and the runtime environment.
+.Specification references****
 * https://jakarta.ee/specifications/faces/4.0/jakarta-faces-spec-4.0.html[Jakarta Faces 4.0 Spec]
 * https://jakarta.ee/specifications/faces/4.0/jakarta-faces-spec-4.0.html#a4207[Jakarta Faces 4.0 - Chapter 7: Lifecycle]
 * https://jakarta.ee/specifications/faces/4.0/jakarta-faces-spec-4.0.html#a5097[Jakarta Faces 4.0 - Chapter 11: Custom Components]
-* https://docs.joinfaces.org/[JoinFaces Documentation]
-****
+* https://docs.joinfaces.org/[JoinFaces Documentation]****
 
-=== Migrationsoptionen im Projektkontext
-
-Das Projekt verwendet JoinFaces, um JSF im Spring‑Boot‑Runtime weiter zu betreiben. Diese Option ermöglicht den Betrieb bestehender XHTML‑Views. CDI und Spring bleiben getrennte Kontexte; die Integration ist projektabhängig und muss geprüft werden.
-
-.Migrationsoptionen
-[cols="1,2,1"]
-|===
-| Ansatz | Beschreibung | Status
+=== Migration options in the project context
+The project uses JoinFaces to further operate JSF in the Spring Boot runtime. This option enables the operation of existing XHTML views. CDI and Spring remain separate contexts; The integration depends on the project and must be checked.
+.Migration options
+[cols="1,2,1"]|===
+| approach | Description | status
 
 | JoinFaces
-| JSF auf Spring Boot, UI bleibt erhalten
-| Projektentscheidung
+| JSF on Spring Boot, UI remains
+| Project decision
 
 | Thymeleaf
-| Server‑Side Templates, UI‑Neuentwicklung
+| Server-side templates, new UI development
 | Alternative
 
 | SPA + REST
-| Separates Frontend mit Backend‑API
+| Separate frontend with backend API
 | Alternative
 |===
 
-=== JoinFaces-Strategie
-
-JoinFaces bietet Spring Boot Starter für JSF-Implementierungen (Mojarra, MyFaces) und Komponentenbibliotheken (PrimeFaces, OmniFaces). Die Integration ermöglicht:
-
-* Betrieb bestehender XHTML-Views ohne Änderung
-* Spring Dependency Injection in JSF Managed Beans (je nach Konfiguration und Scope)
-* Automatische Ressourcen-Konfiguration
-
-==== Scope-Abbildung
-
-JSF‑spezifische Scopes wie `@ViewScoped` sind an den JSF‑Lifecycle gebunden. `@ConversationScoped` ist in JoinFaces nicht unterstützt und erfordert manuelle Migration.
-
-[cols="1,2,2"]
-|===
-| CDI‑Scope | Abbildung | Hinweis
+=== JoinFaces strategy
+JoinFaces provides Spring Boot starters for JSF implementations (Mojarra, MyFaces) and component libraries (PrimeFaces, OmniFaces). The integration enables:
+* Operation of existing XHTML views without changes
+* Spring Dependency Injection in JSF Managed Beans (depending on configuration and scope)
+* Automatic resource configuration
+==== Scope illustration
+JSF-specific scopes such as @ViewScoped are tied to the JSF lifecycle. `@ConversationScoped` is not supported in JoinFaces and requires manual migration.
+[cols="1,2,2"]|===
+| CDI Scope | Mapping | Note
 
 | `@RequestScoped`
 | Spring `request`
@@ -61,16 +48,14 @@ JSF‑spezifische Scopes wie `@ViewScoped` sind an den JSF‑Lifecycle gebunden.
 | JoinFaces‑eigener Scope
 
 | `@ConversationScoped`
-| nicht unterstützt
+| not supported
 | Manuelle Migration erforderlich
 |===
 
-==== Kompatibilität
+==== Compatibility
+Verified for project baseline (as of 2026-01-23). See https://github.com/joinfaces/joinfaces/releases[JoinFaces Releases] for current compatibility.
 
-Verifiziert für Projekt-Baseline (Stand: 2026-01-23). Siehe https://github.com/joinfaces/joinfaces/releases[JoinFaces Releases] für aktuelle Kompatibilität.
-
-[cols="1,1,1,1"]
-|===
+[cols="1,1,1,1"]|===
 | JoinFaces | Spring Boot | Jakarta EE | Java
 
 | 5.3.x
@@ -79,86 +64,68 @@ Verifiziert für Projekt-Baseline (Stand: 2026-01-23). Siehe https://github.com/
 | 17+
 |===
 
-=== Konfiguration
-
-Die JSF-Migration kann über `project.yaml` gesteuert werden:
-
-[source,yaml]
-----
+=== Configuration
+JSF migration can be controlled via `project.yaml`:
+[source,yaml]----
 migration:
   jsf:
-    runtime: joinfaces   # oder: manual
+    runtime: joinfaces   # or: manual
 ----
 
-==== Strategien
-
-[cols="1,3"]
-|===
-| Strategy | Beschreibung
+==== Strategies
+[cols="1.3"]|===
+| Strategy | Description
 
 | `joinfaces` (default)
-| JSF-Scopes (`@ViewScoped`, `@FlowScoped`) bleiben unverändert. JoinFaces stellt die Runtime bereit. Klassen werden mit `@NeedsReview(category=CONFIGURATION)` markiert für Dateistruktur-Verifizierung.
+| JSF scopes (`@ViewScoped`, `@FlowScoped`) remain unchanged. JoinFaces provides the runtime. Classes are marked with `@NeedsReview(category=CONFIGURATION)` for directory-structure verification.
 
 | `manual`
-| JSF-Scopes werden mit `@NeedsReview(category=MANUAL_MIGRATION)` markiert für manuelle Migration zu Spring-Scopes. Kein JoinFaces.
+| JSF scopes are marked with `@NeedsReview(category=MANUAL_MIGRATION)` for manual migration to Spring scopes. No JoinFaces.
 |===
 
-**Hinweis:** `@ConversationScoped` wird unabhängig von der Strategie immer mit `@NeedsReview(category=SEMANTIC_CHANGE)` markiert, da es keine direkte Spring-Entsprechung gibt.
-
-==== Idee: JSF ohne Spring Boot
-
-Auch wenn dieses Projekt primär von Spring Boot ausgeht, ist ein Betrieb ohne Spring Boot in Einzelfällen sinnvoll, etwa bei Betrieb in einem Application Server mit vorhandenem JSF-Stack. In diesem Fall können Konzepte aus JoinFaces übernommen werden, ohne die Boot-spezifische Auto-Konfiguration zu verwenden:
-
-* **Scope-Implementierung:** View/Flow-Scopes basieren auf `FacesContext` und `ViewMap`. Diese Logik ist unabhängig von Spring Boot.
-* **Registrierung als Spring-Scope:** Ohne Boot muss die Registrierung explizit erfolgen (z. B. via `CustomScopeConfigurer`).
-* **Scope-Mapping:** Die Idee, JSF-Scopes auf Spring-Scopes zu mappen, bleibt übertragbar; nur die Boot-Integration entfällt.
-
-JoinFaces trennt dabei **Implementierung** und **Aktivierung**:
-
-* **Implementierung:** Der eigentliche Scope (z. B. `org.joinfaces.viewscope.ViewScope`) ist Spring‑kompatibel und nicht an Boot gebunden.
-* **Aktivierung:** Die Aktivierung erfolgt in JoinFaces über Boot‑Auto‑Konfigurationen (z. B. `FacesScopeAnnotationsAutoConfiguration`, `CdiScopeAnnotationsAutoConfiguration`).
-
-Ohne Spring Boot kann die Implementierung genutzt werden, wenn die Aktivierung manuell in einer Spring‑Konfiguration nachgebildet wird (Scope‑Registrierung + Annotation‑Mapping).
-
-Dieser Weg ist eine optionale Architekturentscheidung und betrifft nicht die Default-Strategie (JoinFaces).
-
-=== Automatisierte Migration
-
-==== Verfügbare Rezepte
-
-[cols="1,3"]
-|===
-| Name | Beschreibung
+**Note:** `@ConversationScoped` is always marked with `@NeedsReview(category=SEMANTIC_CHANGE)` regardless of the strategy because there is no direct Spring equivalent.
+==== Idea: JSF without Spring Boot
+Even though this project is primarily based on Spring Boot, operation without Spring Boot makes sense in individual cases, for example when operating in an application server with an existing JSF stack. In this case, concepts from JoinFaces can be adopted without using boot-specific auto-configuration:
+* **Scope implementation:** View/Flow scopes are based on `FacesContext` and `ViewMap`. This logic is independent of Spring Boot.
+* **Registration as Spring Scope:** Without boot, registration must be done explicitly (e.g. via `CustomScopeConfigurer`).
+* **Scope mapping:** The idea of ​​mapping JSF scopes to Spring scopes remains transferable; only the boot integration is omitted.
+JoinFaces separates **implementation** and **activation**:
+* **Implementation:** The actual scope (e.g. `org.joinfaces.viewscope.ViewScope`) is Spring‑compatible and not bound to Boot.
+* **Activation:** Activation occurs in JoinFaces via boot auto configurations (e.g. `FacesScopeAnnotationsAutoConfiguration`, `CdiScopeAnnotationsAutoConfiguration`).
+The implementation can be used without Spring Boot if the activation is recreated manually in a Spring configuration (scope registration + annotation mapping).
+This path is an optional architectural decision and does not affect the default strategy (JoinFaces).
+=== Automated migration
+==== Available recipes
+[cols="1.3"]|===
+| Name | Description
 
 | `com.github.rewrite.ejb.AddJoinFacesDependencies`
-| Fügt JoinFaces‑BOM, Starter und Maven‑Plugin hinzu; erkennt PrimeFaces/MyFaces.
+| Adds JoinFaces BOM, starter and Maven plugin; recognizes PrimeFaces/MyFaces.
 
 | `com.github.rewrite.ejb.MoveJsfResourcesToMetaInf`
-| Verschiebt JSF‑Ressourcen nach `META-INF/resources`.
+| Moves JSF resources to `META-INF/resources`.
 
 | `com.github.rewrite.ejb.MarkJsfForMigration`
-| Markiert JSF‑Klassen abhängig von `migration.jsf.runtime`: CONFIGURATION (joinfaces) bzw. MANUAL_MIGRATION (manual); ConversationScoped bleibt SEMANTIC_CHANGE.
+| Marks JSF classes depending on `migration.jsf.runtime`: CONFIGURATION (joinfaces) or MANUAL_MIGRATION (manual); ConversationScoped remains SEMANTIC_CHANGE.
 
 | `com.github.rewrite.ejb.MigrateJsfContextParams`
-| Migriert JSF Context-Parameter aus web.xml zu application.properties.
+| Migrates JSF context parameters from web.xml to application.properties.
 
 | `com.github.rewrite.ejb.CleanupJsfWebXml`
-| Entfernt FacesServlet und JSF-Konfiguration aus web.xml.
+| Removes FacesServlet and JSF configuration from web.xml.
 
 | `com.github.rewrite.ejb.ConfigureJsfSession`
-| Konfiguriert JSF Session-Handling für Spring Boot.
+| Configures JSF session handling for Spring Boot.
 
 | `com.github.rewrite.ejb.RewriteJsfResourceReferences`
-| Passt JSF-Ressourcenpfade für Spring Boot an.
+| Customizes JSF resource paths for Spring Boot.
 
 | `com.github.rewrite.ejb.AddJsfExceptionHandler`
-| Fügt JSF Exception Handler Konfiguration hinzu.
+| Adds JSF exception handler configuration.
 |===
 
-==== Ressourcen-Verschiebung
-
-[cols="1,1"]
-|===
+==== Resource shifting
+[cols="1,1"]|===
 | Quellpfad | Zielpfad
 
 | `src/main/webapp/WEB-INF/faces-config.xml`
@@ -171,12 +138,10 @@ Dieser Weg ist eine optionale Architekturentscheidung und betrifft nicht die Def
 | `src/main/resources/META-INF/resources/*`
 |===
 
-=== Prüfpunkte für das Projekt
-
-* `faces-config.xml`‑Version und kompatible JSF‑Version
-* `javax.faces.PROJECT_STAGE` bzw. `joinfaces.jsf.project-stage`
-* PrimeFaces‑Theme‑Konfiguration (falls verwendet)
-* ResourceLibraryContracts (falls verwendet)
-* CDI‑Erweiterungen und Custom Scopes
-
-Siehe auch: link:../migration-guide/jsf-migration.md[JSF Migration Guide]
+=== Checkpoints for the project
+* `faces-config.xml` version and compatible JSF version
+* `javax.faces.PROJECT_STAGE` or `joinfaces.jsf.project-stage`
+* PrimeFaces theme configuration (if used)
+* ResourceLibraryContracts (if used)
+* CDI extensions and custom scopes
+See also: link:../migration-guide/jsf-migration.md[JSF Migration Guide]

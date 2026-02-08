@@ -1,12 +1,8 @@
 == Jakarta Concurrency Utilities
-
-Jakarta Concurrency bietet Container-verwaltete Executor-Services (`ManagedExecutorService`, `ManagedScheduledExecutorService`). Diese Services stellen Kontextweitergabe und Lifecycle-Management sicher. In Spring Boot existiert kein identisches Modell; stattdessen werden `TaskExecutor`, `TaskScheduler` oder eigene Executor-Beans verwendet.
-
+Jakarta Concurrency provides container managed executor services (`ManagedExecutorService`, `ManagedScheduledExecutorService`). These services ensure context propagation and lifecycle management. No identical model exists in Spring Boot; Instead, `TaskExecutor`, `TaskScheduler` or your own executor beans are used.
 === ManagedExecutorService
-
-.Beispiel: VORHER (Jakarta Concurrency)
-[source,java]
-----
+.Example: BEFORE (Jakarta Concurrency)
+[source, java]----
 import javax.annotation.Resource;
 import javax.enterprise.concurrent.ManagedExecutorService;
 
@@ -21,9 +17,8 @@ public class DocumentPipeline {
 }
 ----
 
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+.Example: AFTER (Spring Boot)
+[source, java]----
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
 
@@ -42,6 +37,5 @@ public class DocumentPipeline {
 }
 ----
 
-In Spring müssen Thread-Pools explizit konfiguriert werden. Kontextweitergabe (Security, MDC, Transaktionen) muss je nach Anforderung zusätzlich implementiert werden.
-
-Die Jakarta‑Concurrency‑Spezifikation beschreibt, dass Managed‑Executors Container‑Kontexte wie JNDI‑Naming, Classloader und Security‑Informationen propagieren. Wird außerhalb dieser Managed‑Executors gearbeitet, gehen diese Kontexte verloren. Bei der Migration ist daher zu prüfen, welche Kontexte im EJB‑Betrieb implizit vorhanden waren und ob sie in Spring explizit übertragen werden müssen.
+In Spring, thread pools must be configured explicitly. Context passing (security, MDC, transactions) must be additionally implemented depending on the requirements.
+The Jakarta concurrency specification describes that managed executors propagate container contexts such as JNDI naming, class loaders and security information. If you work outside of these managed executors, these contexts are lost. When migrating, it is therefore important to check which contexts were implicitly present in EJB operation and whether they need to be transferred explicitly to Spring.

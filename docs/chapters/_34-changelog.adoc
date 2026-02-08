@@ -1,8 +1,6 @@
-== Änderungslog
-
-Dieses Kapitel dokumentiert wesentliche inhaltliche Änderungen an der Migrationsdokumentation. Es ersetzt keine Git-Historie, sondern beschreibt fachliche Erweiterungen.
-
-* Einführung konsistenter Kapitelstruktur und neutrale Prosa
-* Ergänzung von Migrationshinweisen für EJB-Lifecycle, Concurrency und Security
-* Aktualisierung der Beispiele auf fachliche Domänenbegriffe
-* Präzisierungen zu Review‑Markierungen und Entscheidungsbereichen
+== Changelog
+This chapter documents significant changes to the content of the migration documentation. It does not replace Git history, but rather describes technical extensions.
+* Introducing consistent chapter structure and neutral prose
+* Addition of migration notes for EJB lifecycle, concurrency and security
+* Updated examples to include technical domain terms
+* Clarifications on review markers and decision areas

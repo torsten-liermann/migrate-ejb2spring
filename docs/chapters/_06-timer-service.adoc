@@ -1,32 +1,23 @@
-== Timer Service
-
-EJB Timer Service bietet containerverwaltete, transaktionale und optional persistente Zeitsteuerung.
-Die Semantik umfasst Kalender-Timer (`@Schedule`), programmatic timers (`TimerService`) und Lifecycle-Integration (`@Timeout`).
-Spring bietet `@Scheduled` und `TaskScheduler`, aber ohne direkte Entsprechung für EJB-Persistenz und Timer-Infos.
-Die Migration erfordert eine bewusste Entscheidung über Persistenz, Cluster-Verhalten und Transaktionsgrenzen.
-Dieses Kapitel behandelt sowohl deklarative Timer (`@Schedule/@Timeout`) als auch programmgesteuerte Timer (`TimerService`).
-
-.Spezifikationsreferenzen
-****
-* https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#a2881[Jakarta EJB 4.0 Spec - Chapter 18: Timer Service]
+== Timer service
+EJB Timer Service provides container-managed, transactional, and optionally persistent timing.
+Semantics include calendar timers (`@Schedule`), programmatic timers (`TimerService`) and lifecycle integration (`@Timeout`).
+Spring provides `@Scheduled` and `TaskScheduler`, but without a direct equivalent for EJB persistence and timer info.
+Migration requires a conscious decision about persistence, cluster behavior and transaction boundaries.
+This chapter covers both declarative timers (`@Schedule/@Timeout`) and programmatic timers (`TimerService`).
+.Specification references***** https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#a2881[Jakarta EJB 4.0 Spec - Chapter 18: Timer Service]
 * https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#a2940[Jakarta EJB 4.0 Spec - §18.2.1 @Schedule/@Schedules]
 * https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#a2983[Jakarta EJB 4.0 Spec - §18.2.2 Calendar-Based Timer Expressions]
 * https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#a3088[Jakarta EJB 4.0 Spec - §18.3 Programmatic Timers (TimerService)]
-* https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#a3185[Jakarta EJB 4.0 Spec - §18.4 Timer Persistence]
-****
+* https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#a3185[Jakarta EJB 4.0 Spec - §18.4 Timer Persistence]****
 
-EJB erlaubt `@Schedule`-Methoden mit `Timer`-Parameter.
-Spring `@Scheduled` verlangt parameterlose Methoden.
-Wenn der Timer-Kontext im Methodenrumpf verwendet wird, ist eine direkte Migration auf `@Scheduled` nicht möglich; die Zielabbildung muss über TaskScheduler oder eine persistente Scheduling-Komponente erfolgen.
-
-Das EJB-Attribut `persistent` ist standardmäßig `true`.
-Spring `@Scheduled` ist nicht persistent, daher muss Persistenz explizit umgesetzt werden, falls sie fachlich erforderlich ist.
-
+EJB allows `@Schedule` methods with `Timer` parameter.
+Spring `@Scheduled` requires parameterless methods.
+If the timer context is used in the method body, direct migration to `@Scheduled` is not possible; the target mapping must be done via TaskScheduler or a persistent scheduling component.
+The EJB attribute `persistent` is `true` by default.
+Spring `@Scheduled` is not persistent, so persistence must be implemented explicitly if it is technically required.
 === @Schedule -> @Scheduled
-
-.Beispiel: VORHER (EJB)
-[source,java]
-----
+.Example: BEFORE (EJB)
+[source, java]----
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.ejb.Schedule;
@@ -57,9 +48,8 @@ public class ComplianceTasks {
 }
 ----
 
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+.Example: AFTER (Spring Boot)
+[source, java]----
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -93,83 +83,65 @@ public class ComplianceTasks {
 }
 ----
 
-[NOTE]
+[NOTE]====
+Spring Cron Format: `Second Minute Hour Day Month Weekday` (6 fields).
+EJB `@Schedule` supports additional attributes (e.g. `year`) that are not available in Spring.
 ====
-Spring Cron Format: `Sekunde Minute Stunde Tag Monat Wochentag` (6 Felder).
-EJB `@Schedule` unterstützt zusätzliche Attribute (z. B. `year`) die in Spring nicht verfügbar sind.
-====
 
-Die EJB‑Spezifikation definiert Standardwerte für `@Schedule`: `second`, `minute` und `hour` defaulten auf `"0"`, `dayOfMonth`, `month`, `dayOfWeek` und `year` auf `"*"`.
-Wenn `dayOfMonth` und `dayOfWeek` beide nicht‑Wildcard‑Werte haben, gilt eine OR‑Semantik.
-Zusätzlich kann ein `timezone` angegeben werden; der Default ist die Container‑Zeitzone.
-Diese Details müssen bei der Umstellung auf Spring‑Cron berücksichtigt werden, da Spring keine `year`‑Angabe kennt und eine abweichende Zeitzone explizit konfiguriert werden muss.
+The EJB specification defines default values ​​for `@Schedule`: `second`, `minute` and `hour` default to `"0"`, `dayOfMonth`, `month`, `dayOfWeek` and `year` default to `"*"`.
+If `dayOfMonth` and `dayOfWeek` both have non-wildcard values, OR semantics apply.
+Additionally, a `timezone` can be specified; the default is the container time zone.
+These details must be taken into account when switching to Spring Cron, as Spring does not have a `year` specification and a different time zone must be explicitly configured.
+=== Program-controlled timers (TimerService)
+EJB provides an API called `TimerService` for creating timers programmatically. These timers are container managed and can be persistent. In Spring, dynamic jobs are typically implemented with `TaskScheduler` or through a separate scheduling component. Persistence must be solved explicitly, for example through a database table and a restart mechanism.
+`TimerService` is often used to create dynamic schedules from specialist data, for example for deadlines or follow-ups. These timers are transactionally integrated into EJB and can be restored after server restarts.
+EJB timers supply technical context data to @Timeout methods via `Timer.getInfo()`. This context information must be explicitly stored in Spring and passed to the task to be executed.
+`@Timeout` methods are allowed to accept a `Timer` parameter in EJB. There is no direct counterpart for such callback signatures in Spring, so the timer context must be provided using its own scheduling structures.
+The EJB API additionally provides functions such as `getNextTimeout()`, `getTimeRemaining()`, `getSchedule()` and `cancel()`. This information is only available in Spring through its own scheduling infrastructure, such as `ScheduledFuture` or a job scheduler with context access.
+Persistent timers, cluster behavior and redelivery are defined in EJB, not in Spring. For migration, a decision must be made as to whether persistence is required (e.g. Quartz) or whether in-memory scheduling is sufficient.
+=== Decision logic
+[cols="1,2"]|===
+| Requirement | Suitable approach
 
-=== Programmgesteuerte Timer (TimerService)
-
-EJB bietet mit `TimerService` eine API zur programmgesteuerten Erstellung von Timern. Diese Timer sind containerverwaltet und können persistent sein. In Spring werden dynamische Jobs typischerweise mit `TaskScheduler` oder durch eine eigene Scheduling-Komponente umgesetzt. Persistenz muss explizit gelöst werden, etwa durch eine Datenbanktabelle und einen Wiederanlauf-Mechanismus.
-
-`TimerService` wird häufig genutzt, um dynamische Zeitpläne aus Fachdaten zu erzeugen, etwa für Fristen oder Wiedervorlagen. Diese Timer sind in EJB transaktional eingebunden und können nach Server-Restarts wiederhergestellt werden.
-
-EJB‑Timer liefern über `Timer.getInfo()` fachliche Kontextdaten an `@Timeout`‑Methoden. Diese Kontextinformationen müssen in Spring explizit gespeichert und an die auszuführende Aufgabe übergeben werden.
-
-`@Timeout`‑Methoden dürfen in EJB einen `Timer`‑Parameter akzeptieren. In Spring gibt es für solche Callback‑Signaturen kein direktes Pendant, sodass der Timer‑Kontext über eigene Scheduling‑Strukturen bereitgestellt werden muss.
-
-Die EJB‑API stellt zusätzlich Funktionen wie `getNextTimeout()`, `getTimeRemaining()`, `getSchedule()` und `cancel()` bereit. Diese Informationen sind in Spring nur über eigene Scheduling‑Infrastruktur verfügbar, etwa über `ScheduledFuture` oder einen Job‑Scheduler mit Kontextzugriff.
-
-Persistente Timer, Cluster-Verhalten und Redelivery sind in EJB definiert, in Spring nicht. Für die Migration muss entschieden werden, ob Persistenz benötigt wird (z. B. Quartz) oder ob in-memory Scheduling ausreicht.
-
-=== Entscheidungslogik
-
-[cols="1,2"]
-|===
-| Anforderung | Geeigneter Ansatz
-
-| Einfache Cron-Logik ohne `Timer`-Nutzung
+| Simple cron logic without `Timer` usage
 | `@Scheduled`
 
-| Zugriff auf Timer-Kontext im Methodenrumpf
-| `TaskScheduler` oder Quartz
+| Access to timer context in method body
+| `TaskScheduler` or Quartz
 
-| Persistente Ausführung
+| Persistent execution
 | Quartz
 
-| Cluster-Koordination ohne Persistenz
-| Locking-Mechanismus + `@Scheduled` (z. B. ShedLock)
+| Cluster coordination without persistence
+| Locking mechanism + `@Scheduled` (e.g., ShedLock)
 
-| Voller EJB-Timer-Funktionsumfang
+| Full EJB timer feature set
 | Quartz
 |===
 
-=== Projektsteuerung via project.yaml
-
-Die Timer-Migrationsstrategie kann über `project.yaml` im Projekt-Root konfiguriert werden. Die Auswahl der
-Timer-Recipes sollte konsistent zu dieser Strategie erfolgen.
-
-[source,yaml]
-----
+=== Project control via project.yaml
+The timer migration strategy can be configured via `project.yaml` in the project root. The selection of the
+Timer recipes should be done consistently with this strategy.
+[source,yaml]----
 migration:
   timer:
     strategy: quartz   # scheduled | taskscheduler | quartz
     cluster: none          # none | quartz-jdbc | shedlock
 ----
 
-Bei `cluster: quartz-jdbc` ist `strategy: quartz` erforderlich. `cluster: shedlock` ist nicht kompatibel mit
-`strategy: quartz` und erfordert `scheduled` oder `taskscheduler`.
-
-=== Automatisierte Migration
-
-==== Verfügbare Recipes
-
-[cols="1,2,1"]
-|===
-| Recipe | Beschreibung | Strategy
+For `cluster: quartz-jdbc`, `strategy: quartz` is required. `cluster: shedlock` is not compatible with
+`strategy: quartz` and requires `scheduled` or `taskscheduler`.
+=== Automated migration
+==== Available Recipes
+[cols="1,2,1"]|===
+| Recipe | Description | Strategy
 
 | `MigrateScheduleToScheduled`
-| @Schedule → @Scheduled (sichere Fälle)
+| @Schedule → @Scheduled (safe cases)
 | scheduled
 
 | `MigrateScheduleToTaskScheduler`
-| @Schedule → TaskScheduler (mit Timer-Parameter)
+| @Schedule → TaskScheduler (with Timer parameter)
 | taskscheduler
 
 | `MigrateScheduleToQuartz`
@@ -185,121 +157,103 @@ Bei `cluster: quartz-jdbc` ist `strategy: quartz` erforderlich. `cluster: shedlo
 | quartz
 
 | `MigrateTransactionalTimerCreation`
-| TimerService.create* → transaktionale Erzeugung per Event (After-Commit)
+| TimerService.create* → transactional creation via event (after-commit)
 | taskscheduler/quartz
 
 | `MapEjbAnnotationsToMarkers`
 | Fallback: @Schedule → @EjbSchedule (No-Op)
-| (alle)
+| (all)
 
 | `MarkEjbTimerServiceForReview`
-| Markiert TimerService/@Timeout für Review (NeedsReview + Profile)
+| Marks TimerService/@Timeout for review (NeedsReview + profile)
 | review
 
 | `MigrateTimerApiToStubs`
-| Ersetzt jakarta/ javax.ejb Timer-Typen durch Stub-Typen für Compile-Stabilität
+| Replaces jakarta/javax.ejb timer types with stub types for compile stability
 | compile
 |===
 
-Die Standardkette `com.github.rewrite.ejb.MigrateEjbToSpring` aktiviert für Timer aktuell `MigrateScheduleToScheduled`,
-`MigrateEjbProgrammaticTimers`, `MapEjbAnnotationsToMarkers`, `MarkEjbTimerServiceForReview` und
-`MigrateTimerApiToStubs`. Quartz- und TaskScheduler-Varianten werden als opt-in Recipes aktiviert, wenn sie in der
-Recipe-Liste explizit ausgewählt werden.
-
-Die Auswahl der Timer-Strategie ist damit eine Pipeline-Entscheidung: `scheduled` verwendet die Standardkette,
-`taskscheduler` nutzt `MigrateScheduleToTaskScheduler` und `MigrateEjbProgrammaticTimers` sowie die Marker für
-nicht migrierte Fälle, `quartz` verwendet `MigrateScheduleToQuartz` und `MigrateTimerServiceToQuartz` inklusive
-AutoConfiguration für Quartz. Die in `project.yaml` hinterlegte Strategie soll mit der tatsächlich ausgeführten
-Recipe-Kombination übereinstimmen.
-
-=== Einschränkungen der automatischen Timer-Migration
-
-Die folgenden Einschränkungen sind als abschließende Zusammenfassung der
-automatisierten Timer-Migration zu verstehen. Sie spiegeln den aktuellen
-Implementierungsstand wider und müssen bei der Bewertung von Migrationsergebnissen
-berücksichtigt werden.
-
-==== Grundsatz: Default-Persistenz
-
-In EJB ist `persistent = true` der Default für alle Timer-Konstrukte:
-`@Schedule` ohne `persistent`, `TimerService.createTimer(delay, info)` ohne `TimerConfig`
-und `new TimerConfig()` ohne Parameter. Ohne explizites `persistent = false` erfolgt
-keine automatische Migration zu `@Scheduled` oder TaskScheduler.
-
-==== @Schedule und @Schedules
-
-- `year`-Attribut: Spring Cron besitzt kein year-Feld. @Schedule mit `year` wird nicht
-  automatisch migriert.
-- `persistent = true` (explizit oder Default): erfordert Persistenz; automatische
-  Migration zu `@Scheduled` ist ausgeschlossen.
-- Timer-Parameter in der Methodensignatur: `@Scheduled` ist parameterlos.
-- Non-Literal Attribute (Konstanten, Variablen): Werte sind zur Compile-Zeit nicht
-  sicher auflösbar.
-- `@Schedules` mit mehreren Einträgen: einfache Fälle werden migriert, komplexe
-  Kombinationen (z. B. gemischte persistent-Werte) nicht.
-
+The default chain `com.github.rewrite.ejb.MigrateEjbToSpring` currently enables `MigrateScheduleToScheduled` for timers,
+`MigrateEjbProgrammaticTimers`, `MapEjbAnnotationsToMarkers`, `MarkEjbTimerServiceForReview` and
+`MigrateTimerApiToStubs`. Quartz and TaskScheduler variants are activated as opt-in recipes when included in the
+Recipe list can be explicitly selected.
+The selection of the timer strategy is therefore a pipeline decision: `scheduled` uses the standard chain,
+`taskscheduler` uses `MigrateScheduleToTaskScheduler` and `MigrateEjbProgrammaticTimers` as well as the markers for
+non-migrated cases, `quartz` uses `MigrateScheduleToQuartz` and `MigrateTimerServiceToQuartz` included
+AutoConfiguration for Quartz. The strategy stored in `project.yaml` should match the one actually executed
+Recipe combination match.
+=== Limitations of automatic timer migration
+The following limitations are intended as a final summary of the
+understand automated timer migration. They reflect the current one
+implementation status and must be used when evaluating migration results
+be taken into account.
+==== Principle: Default persistence
+In EJB, `persistent = true` is the default for all timer constructs:
+`@Schedule` without `persistent`, `TimerService.createTimer(delay, info)` without `TimerConfig`
+and `new TimerConfig()` without parameters. Done without explicit `persistent = false`
+no automatic migration to `@Scheduled` or TaskScheduler.
+==== @Schedule and @Schedules
+- `year` attribute: Spring Cron does not have a year field. @Schedule with `year` will not
+  migrated automatically.
+- `persistent = true` (explicit or default): requires persistence; automatic
+  Migration to `@Scheduled` is impossible.
+- Timer parameters in the method signature: `@Scheduled` is parameterless.
+- Non-literal attributes (constants, variables): values are not present at compile time
+  safely solvable.
+- `@Schedules` with multiple entries: simple cases are migrated, complex ones
+  Combinations (e.g. mixed persistent values) do not.
 ==== TimerService API
-
-- `createTimer`/`createSingleActionTimer`/`createIntervalTimer` werden nur in der
-  sicheren Teilmenge automatisiert (TimerConfig mit `persistent=false` als Literal,
-  genau eine parameterlose `@Timeout`-Methode, Rückgabewert wird ignoriert).
-- Dynamische `TimerConfig`-Konfiguration (`setPersistent`, `setInfo`) ist nicht
-  automatisch auflösbar.
-- `createCalendarTimer` wird nur für eine eingeschränkte Teilmenge der
-  `ScheduleExpression`-Attribute automatisiert. Spezialwerte wie `Last`, `1st/2nd`
-  oder `start/end` fallen aus der Automatisierung.
-- `TimerHandle` und `Timer.getSchedule()` sind nur automatisierbar, wenn eine
-  projektspezifische Quartz-Strategie genutzt wird und kein Handle entweicht.
-
-==== Migrationsvoraussetzungen
-
-Die automatische Migration zu `@Scheduled` erfolgt **nur wenn alle** folgenden Bedingungen erfüllt sind:
-
-[cols="1,2"]
-|===
-| Bedingung | Prüfung
+- `createTimer`/`createSingleActionTimer`/`createIntervalTimer` are only used in the
+  safe subset automated (TimerConfig with `persistent=false` as literal,
+  exactly one parameterless `@Timeout` method, return value is ignored).
+- Dynamic `TimerConfig` configuration (`setPersistent`, `setInfo`) is not
+  automatically resolvable.
+- `createCalendarTimer` is only used for a limited subset of the
+  `ScheduleExpression` attributes automated. Special values like `Last`, `1st/2nd`
+  or `start/end` fall out of the automation.
+- `TimerHandle` and `Timer.getSchedule()` can only be automated if a
+  Project-specific Quartz strategy is used and no handle escapes.
+==== Migration requirements
+The automatic migration to `@Scheduled` occurs **only if all** of the following conditions are met:
+[cols="1,2"]|===
+| Condition | Verification
 
 | `persistent = false`
-| Muss explizit gesetzt sein (EJB-Default ist `true`)
+| Must be explicitly set (EJB default is `true`)
 
-| Kein Timer-Parameter
-| Methode darf keinen `Timer`-Parameter haben
+| No Timer parameter
+| Method must not have a `Timer` parameter
 
-| Keine Non-Literal-Werte
-| Alle Attribute müssen String-Literale sein (keine Konstanten)
+| No non-literal values
+| All attributes must be string literals (no constants)
 
-| Kein `year`-Attribut
-| `year` darf nicht gesetzt sein (Spring Cron hat kein year-Feld)
+| No `year` attribute
+| `year` must not be set (Spring cron has no year field)
 |===
 
-==== Marker-Fallback
-
-Wenn eine der Bedingungen nicht erfüllt ist, wird die `@Schedule`-Annotation **nicht** migriert.
-Stattdessen wandelt das nachfolgende Recipe `MapEjbAnnotationsToMarkers` die Annotation in `@EjbSchedule` um:
-
-[source,java]
-----
-// Vorher - persistent=true (Default) oder Timer-Parameter
+==== Marker fallback
+If any of the conditions are not met, the `@Schedule` annotation will **not** be migrated.
+Instead, the following recipe `MapEjbAnnotationsToMarkers` converts the annotation to `@EjbSchedule`:
+[source, java]----
+// Before - persistent=true (default) or Timer parameter
 @Schedule(second = "*/6", minute = "*", hour = "*")
 public void timer(Timer timer) {
     timer.getInfo();
 }
 
-// Nachher - No-Op-Marker preserviert alle Attribute
+// After - No-Op marker preserves all attributes
 @EjbSchedule(second = "*/6", minute = "*", hour = "*", persistent = true)
 public void timer(Timer timer) {
     timer.getInfo();
 }
 ----
 
-Der Marker `@EjbSchedule` ist eine No-Op-Annotation ohne Laufzeitverhalten.
-Sie dokumentiert die ursprüngliche EJB-Semantik und ermöglicht eine spätere manuelle Migration zu TaskScheduler oder Quartz.
-
-[cols="1,3"]
-|===
+The `@EjbSchedule` marker is a no-op annotation with no runtime behavior.
+It documents the original EJB semantics and enables later manual migration to TaskScheduler or Quartz.
+[cols="1.3"]|===
 | Name | `de.example.rewrite.ejb.MigrateScheduling`
-| Beschreibung | Kombiniert `MigrateScheduleToScheduled`, `MigrateEjbProgrammaticTimers` und `AddEnableJmsAndScheduling`.
-| Konfiguration | keine
+| Description | Combines `MigrateScheduleToScheduled`, `MigrateEjbProgrammaticTimers` and `AddEnableJmsAndScheduling`.
+| Configuration | none
 |===
 
 ---

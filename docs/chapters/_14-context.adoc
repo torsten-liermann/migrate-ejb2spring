@@ -1,14 +1,9 @@
 == Context
-
-EJB stellt Kontextobjekte wie `SessionContext`, `EJBContext` oder `MessageDrivenContext` bereit, die Zugriff auf Sicherheitsinformationen, Transaktionen und Ressourcen bieten. In Spring wird vergleichbare Information aus dem SecurityContext, aus dem TransactionManager oder aus der Web-Umgebung abgerufen. Ein direkter Austausch der APIs ist nicht möglich, die fachliche Absicht muss neu modelliert werden.
-
-=== SessionContext und Sicherheit
-
-In EJB wird der aktuelle Benutzer über den `SessionContext` abgefragt. In Spring Security erfolgt dies über `SecurityContextHolder` und das `Authentication`-Objekt.
-
-.Beispiel: VORHER (EJB)
-[source,java]
-----
+EJB provides context objects such as SessionContext, EJBContext, or MessageDrivenContext that provide access to security information, transactions, and resources. In Spring, comparable information is retrieved from the SecurityContext, from the TransactionManager or from the web environment. A direct exchange of APIs is not possible; the technical intent must be remodeled.
+=== SessionContext and security
+In EJB the current user is queried via the `SessionContext`. In Spring Security this is done via `SecurityContextHolder` and the `Authentication` object.
+.Example: BEFORE (EJB)
+[source, java]----
 import javax.annotation.Resource;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
@@ -26,9 +21,8 @@ public class CustomerService {
 }
 ----
 
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+.Example: AFTER (Spring Boot)
+[source, java]----
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -44,10 +38,7 @@ public class CustomerService {
 }
 ----
 
-=== Transaktionen und Rollback
-
-EJB erlaubt den Zugriff auf Transaktionsstatus über den Kontext. In Spring wird dieser Status über `TransactionSynchronizationManager` oder durch Ausnahmebehandlung ausgedrückt. Der Einsatz sollte kritisch geprüft werden, da direkte Kontextabfragen häufig ein Indikator für fehlende fachliche Grenzen sind.
-
-=== Ressourcen und JNDI
-
-`SessionContext.lookup()` und direkte JNDI-Lookups werden in Spring durch Property-Binding ersetzt. Ressourcen werden über `@ConfigurationProperties` oder `@Value` injiziert und im Code nicht mehr direkt über JNDI aufgelöst.
+=== Transactions and rollback
+EJB allows access to transaction status via context. In Spring, this status is expressed via `TransactionSynchronizationManager` or through exception handling. The use should be critically examined, as direct context queries are often an indicator of a lack of technical boundaries.
+=== Resources and JNDI
+`SessionContext.lookup()` and direct JNDI lookups are replaced by property binding in Spring. Resources are injected via `@ConfigurationProperties` or `@Value` and are no longer resolved directly via JNDI in the code.

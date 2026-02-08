@@ -1,24 +1,14 @@
-== Jakarta EE Referenzanwendungen
-
-Die Migrationsrezepte werden gegen zwei Referenzanwendungen validiert. Beide Projekte nutzen Jakarta EE 10, setzen unterschiedliche Architekturentscheidungen um und decken verschiedene APIs ab. Dadurch lassen sich Risiken der Migration früh erkennen und Rezepte gezielt auf typische Enterprise-Patterns ausrichten.
-
-Cargo Tracker deckt Messaging, Batch-Verarbeitung, WebSocket und mehrere Service-Schichten ab. Die Anwendung eignet sich, um asynchrone Prozesse, Eventing und Transaktionen im Zusammenspiel zu prüfen. Petclinic Jakarta EE enthält typische CRUD- und UI-Flows und dient als Referenz für klassische Webanwendungen.
-
-Diese Referenzen dienen nicht als Blaupause für Architektur, sondern als validierende Testbasis. Erkenntnisse aus den Migrationen fließen in Rezept-Design, Dokumentation und Regressionstests ein.
-
-=== Überblick
-
-[cols="1,3"]
-|===
-| Anwendung | Charakteristik
-
-| Cargo Tracker
-| Domain-Driven Design, Messaging, Batch, WebSocket, verteilte Prozesse
-
+== Jakarta EE reference applications
+The migration recipes are validated against two reference applications. Both projects use Jakarta EE 10, implement different architectural decisions and cover different APIs. This allows migration risks to be identified early and recipes to be tailored specifically to typical enterprise patterns.
+Cargo Tracker covers messaging, batch processing, WebSocket and multiple service layers. The application is suitable for checking the interaction of asynchronous processes, eventing and transactions. Petclinic Jakarta EE contains typical CRUD and UI flows and serves as a reference for classic web applications.
+These references do not serve as an architectural blueprint, but as a validating test base. Findings from the migrations flow into recipe design, documentation and regression testing.
+===Overview
+[cols="1.3"]|===
+| Application | Characteristic
+| Cargo trackers
+| Domain-driven design, messaging, batch, WebSocket, distributed processes
 | Petclinic Jakarta EE
-| Drei-Schichten-Architektur, Web-UI und REST, CRUD-Flows
-|===
+| Three-tier architecture, web UI and REST, CRUD flows|===
 
-=== Abdeckung relevanter APIs
-
-Die Kombination beider Anwendungen deckt die wichtigsten Jakarta-EE-Bausteine für die Migration ab: EJB-Session-Beans, Transaktionen, CDI-Scopes, JPA, JAX-RS, Security, Timer Service, JMS und ergänzende APIs. Zusätzlich lassen sich besondere Fälle wie Producer-Methoden, Qualifier oder Deployment-Descriptor-Overrides nachvollziehen.
+=== Coverage of relevant APIs
+The combination of both applications covers the most important Jakarta EE building blocks for migration: EJB session beans, transactions, CDI scopes, JPA, JAX-RS, security, timer service, JMS and complementary APIs. In addition, special cases such as producer methods, qualifiers or deployment descriptor overrides can be understood.

@@ -1,16 +1,10 @@
 == Lifecycle
-
-EJB definiert einen präzisen Lebenszyklus mit Container-gesteuerten Callbacks, insbesondere für Stateful Beans. Neben `@PostConstruct` und `@PreDestroy` existieren `@PrePassivate` und `@PostActivate`, die den Übergang von aktiven zu passivierten Zuständen begleiten. Spring bietet ebenfalls Lifecycle-Hooks, aber ohne passivierungsbezogene Phasen. Migrationen müssen daher explizit prüfen, ob Passivierungslogik ersatzlos entfallen darf oder anders umgesetzt werden muss.
-
-=== EJB-Lifecycle-Callbacks
-
-EJB erlaubt Lifecycle-Methoden auf Beans und Entities. Für Stateful Beans gelten zusätzliche Übergänge, die bei Speicherknappheit oder Lastszenarien relevant werden. Die Spezifikation garantiert, dass `@PrePassivate` vor dem Passivieren aufgerufen und `@PostActivate` nach dem Reaktivieren ausgeführt wird. Diese Callbacks werden häufig genutzt, um nicht serialisierbare Ressourcen zu lösen oder erneut zu binden.
-
-Die Spezifikation ruft `@PrePassivate` und `@PostActivate` ausschließlich für Stateful Session Beans auf. Die Passivierung ist eine Containerentscheidung; der Code muss deshalb so entworfen sein, dass Ressourcen vor dem Passivieren freigegeben und nach der Aktivierung erneut gebunden werden können.
-
-.Beispiel: VORHER (EJB)
-[source,java]
-----
+EJB defines a precise lifecycle with container-driven callbacks, especially for stateful beans. In addition to `@PostConstruct` and `@PreDestroy`, there are `@PrePassivate` and `@PostActivate`, which accompany the transition from active to passivated states. Spring also offers lifecycle hooks, but without passivation-related phases. Migrations must therefore explicitly check whether passivation logic can be omitted without replacement or must be implemented differently.
+=== EJB lifecycle callbacks
+EJB allows lifecycle methods on beans and entities. Additional transitions apply to stateful beans, which become relevant in memory shortages or load scenarios. The specification guarantees that `@PrePassivate` is called before passivation and `@PostActivate` is executed after reactivation. These callbacks are often used to unbind or rebind non-serializable resources.
+The specification calls `@PrePassivate` and `@PostActivate` exclusively for stateful session beans. Passivation is a container decision; The code must therefore be designed so that resources can be released before passivation and re-binded after activation.
+.Example: BEFORE (EJB)
+[source, java]----
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.ejb.PostActivate;
@@ -42,13 +36,10 @@ public class QuoteDraftService {
 }
 ----
 
-=== Spring-Lifecycle
-
-Spring unterstützt `@PostConstruct` und `@PreDestroy` sowie optionale Interfaces (`InitializingBean`, `DisposableBean`). Passivierungsphasen existieren nicht. Stateful-Modelle werden in Spring entweder durch explizite Scopes, durch Session- oder Request-Daten oder durch fachliche Persistenz abgebildet. Wenn die EJB-Implementierung `@PrePassivate` oder `@PostActivate` nutzt, muss eine alternative Ressourcenkontrolle eingeführt werden, etwa durch klare Ownership-Regeln, explizites Schließen von Ressourcen oder durch Übergabe an eine Infrastrukturkomponente.
-
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+=== Spring Lifecycle
+Spring supports `@PostConstruct` and `@PreDestroy` as well as optional interfaces (`InitializingBean`, `DisposableBean`). Passivation phases do not exist. Stateful models are mapped in Spring either through explicit scopes, through session or request data, or through technical persistence. If the EJB implementation uses `@PrePassivate` or `@PostActivate`, alternative resource control must be introduced, for example through clear ownership rules, explicit closure of resources or by handing over to an infrastructure component.
+.Example: AFTER (Spring Boot)
+[source, java]----
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Service;
@@ -68,4 +59,4 @@ public class QuoteDraftService {
 }
 ----
 
-Lifecycle-Callbacks sollten in Spring nicht dazu verwendet werden, um transaktionale Geschäftslogik auszulösen. Initialisierung gehört in den Konstruktor oder in eine explizite Startphase, die durch ein Ereignis wie `ApplicationReadyEvent` getriggert wird.
+Lifecycle callbacks should not be used in Spring to trigger transactional business logic. Initialization belongs in the constructor or in an explicit start phase that is triggered by an event like `ApplicationReadyEvent`.

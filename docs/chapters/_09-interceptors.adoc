@@ -1,12 +1,8 @@
 == Interceptors
-
-EJB-Interceptors sind Teil des Container-Modells und bieten deklarative Querschnittsfunktionen wie Logging, Auditing oder Sicherheitsprüfungen. In Spring übernimmt diese Rolle primär Spring AOP, das per Proxy arbeitet und Pointcuts über Annotationen oder Signaturen definiert. Für die Migration ist entscheidend, welche Join-Points tatsächlich erreicht werden und wie die Aufrufreihenfolge zu EJB-Interceptor-Ketten abgebildet wird.
-
-=== @Interceptors und @AroundInvoke
-
-.Beispiel: VORHER (EJB)
-[source,java]
-----
+EJB interceptors are part of the container model and offer declarative cross-sectional functions such as logging, auditing or security checks. In Spring, this role is primarily taken over by Spring AOP, which works via proxy and defines pointcuts via annotations or signatures. What is crucial for the migration is which join points are actually reached and how the call order is mapped to EJB interceptor chains.
+=== @Interceptors and @AroundInvoke
+.Example: BEFORE (EJB)
+[source, java]----
 import javax.interceptor.Interceptor;
 import javax.interceptor.AroundInvoke;
 import javax.interceptor.InvocationContext;
@@ -36,9 +32,8 @@ public class TariffCalculationService {
 }
 ----
 
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+.Example: AFTER (Spring Boot)
+[source, java]----
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -60,15 +55,11 @@ public class AuditAspect {
 }
 ----
 
-Spring AOP arbeitet proxybasiert und greift nur bei externen Aufrufen über den Proxy. Selbstaufrufe innerhalb einer Klasse werden nicht abgefangen. EJB-Interceptors werden hingegen durch den Container für jeden Interceptor-gebundenen Aufruf angewendet. Bei Migrationen mit internen Aufrufketten muss das berücksichtigt werden.
-
-=== Interceptor-Bindings aus CDI
-
-CDI nutzt `@InterceptorBinding`, um Interceptors über eine eigene Annotation zu binden. In Spring wird dies üblicherweise durch eine eigene Annotation und ein `@Aspect` abgebildet, das auf die Annotation als Pointcut reagiert.
-
-.Beispiel: VORHER (CDI)
-[source,java]
-----
+Spring AOP works proxy-based and only uses the proxy for external calls. Self-calls within a class are not intercepted. EJB interceptors, on the other hand, are applied by the container for each interceptor-bound call. This must be taken into account for migrations with internal call chains.
+=== Interceptor bindings from CDI
+CDI uses `@InterceptorBinding` to bind interceptors via its own annotation. In Spring, this is usually represented by its own annotation and an `@Aspect`, which reacts to the annotation as a pointcut.
+.Example: BEFORE (CDI)
+[source, java]----
 import javax.interceptor.InterceptorBinding;
 import java.lang.annotation.*;
 
@@ -78,9 +69,8 @@ import java.lang.annotation.*;
 public @interface Audited { }
 ----
 
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+.Example: AFTER (Spring Boot)
+[source, java]----
 import java.lang.annotation.*;
 
 @Retention(RetentionPolicy.RUNTIME)
@@ -98,4 +88,4 @@ public class AuditedAspect {
 }
 ----
 
-Die Reihenfolge mehrerer Interceptors wird in EJB durch Prioritäten und `@Interceptors`-Reihenfolge bestimmt. In Spring kann die Reihenfolge mit `@Order` oder `Ordered` kontrolliert werden.
+The order of multiple interceptors in EJB is determined by priorities and `@Interceptors` order. In Spring, the order can be controlled with `@Order` or `Ordered`.

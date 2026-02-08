@@ -1,21 +1,13 @@
-== Transaction Rollback
-
-Rollback-Regeln unterscheiden sich zwischen EJB und Spring. In EJB ist die Trennung zwischen Application und System Exceptions zentral. In Spring steuert `@Transactional` das Rollback, standardmäßig nur für Runtime Exceptions. Dieser Unterschied ist eine häufige Quelle für funktionale Abweichungen.
-
-=== EJB-Rollback-Regeln
-
-* System Exceptions führen zu Rollback.
-* Application Exceptions führen nur dann zu Rollback, wenn `rollback = true` gesetzt ist.
-* `setRollbackOnly()` kann den Rollback explizit markieren.
-
-=== Spring-Rollback-Regeln
-
-* Runtime Exceptions führen zu Rollback.
-* Checked Exceptions lösen keinen Rollback aus, sofern `rollbackFor` nicht gesetzt ist.
-* `TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()` markiert den Rollback explizit.
-
-In EJB wird der Rollback häufig über `SessionContext.setRollbackOnly()` ausgelöst. In Spring ist die Entsprechung das Setzen des Rollback‑Flags im aktuellen `TransactionStatus`. Bei der Migration ist zu prüfen, ob `setRollbackOnly()` in EJB als fachlicher Kontrollfluss genutzt wird und wie dieser in Spring nachgebildet werden muss.
-
-=== Migrationsaspekte
-
-Für Beans mit `@ApplicationException` ist zu klären, welche Rollback‑Regeln fachlich erforderlich sind. Diese Regeln müssen in `@Transactional` abgebildet werden, um Fehlerbehandlung und Transaktionskonsistenz beizubehalten.
+== Transaction rollback
+Rollback rules differ between EJB and Spring. In EJB, the separation between application and system exceptions is central. In Spring, `@Transactional` controls rollback, by default only for Runtime Exceptions. This difference is a common source of functional variation.
+=== EJB rollback rules
+* System exceptions lead to rollback.
+* Application exceptions only cause rollback if `rollback = true` is set.
+* `setRollbackOnly()` can mark rollback explicitly.
+=== Spring rollback rules
+* Runtime exceptions lead to rollback.
+* Checked exceptions do not trigger rollback unless `rollbackFor` is set.
+* `TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()` explicitly marks the rollback.
+In EJB, rollback is often triggered via `SessionContext.setRollbackOnly()`. In Spring, the equivalent is setting the rollback flag in the current `TransactionStatus`. During the migration, it is important to check whether `setRollbackOnly()` is used as a technical control flow in EJB and how this needs to be replicated in Spring.
+=== Migration aspects
+For beans with `@ApplicationException`, it must be clarified which rollback rules are technically required. These rules must be mapped into `@Transactional` to maintain error handling and transaction consistency.

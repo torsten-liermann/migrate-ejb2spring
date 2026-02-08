@@ -1,14 +1,9 @@
 == JSON-B
-
-JSON-B ist die Standard-JSON-Bindingspezifikation in Jakarta EE. Spring Boot nutzt standardmäßig Jackson. Beide unterstützen Annotationen für Feldnamen, Null-Werte, Formatierungen und Serialisierungsregeln, unterscheiden sich jedoch in Details und Default-Verhalten.
-
-=== Annotationen und Mapping
-
-JSON-B-Annotationen wie `@JsonbProperty` lassen sich in den meisten Fällen nach `@JsonProperty` übertragen. Besondere Aufmerksamkeit benötigen `@JsonbDateFormat`, `@JsonbTypeAdapter` und Sichtbarkeitsregeln für Properties.
-
-.Beispiel: VORHER (JSON-B)
-[source,java]
-----
+JSON-B is the standard JSON binding specification in Jakarta EE. Spring Boot uses Jackson by default. Both support annotations for field names, null values, formatting and serialization rules, but differ in details and default behavior.
+=== Annotations and mapping
+JSON-B annotations like `@JsonbProperty` can be transferred to `@JsonProperty` in most cases. `@JsonbDateFormat`, `@JsonbTypeAdapter` and visibility rules for properties require special attention.
+.Example: BEFORE (JSON-B)
+[source, java]----
 import javax.json.bind.annotation.JsonbProperty;
 import javax.json.bind.annotation.JsonbDateFormat;
 
@@ -22,9 +17,8 @@ public class ShipmentSnapshot {
 }
 ----
 
-.Beispiel: NACHHER (Jackson)
-[source,java]
-----
+.Example: AFTER (Jackson)
+[source, java]----
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -38,4 +32,4 @@ public class ShipmentSnapshot {
 }
 ----
 
-Die Migration sollte das tatsächliche JSON-Contract-Verhalten mit Tests absichern, insbesondere wenn Clients auf bestimmte Feldnamen, Datumsmuster oder Null-Wert-Handling angewiesen sind.
+The migration should validate the actual JSON contract behavior with tests, especially if clients rely on specific field names, date patterns or null value handling.

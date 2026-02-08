@@ -1,12 +1,8 @@
-== Mail
-
-Jakarta Mail wird in EJB-Anwendungen häufig über `Session`-Objekte aus JNDI eingebunden. Spring Boot bietet mit `JavaMailSender` eine vereinfachte Integration, die über Properties konfiguriert wird. Die Migration betrifft sowohl die Injection als auch die Konfiguration.
-
-=== JNDI-Session zu JavaMailSender
-
-.Beispiel: VORHER (EJB)
-[source,java]
-----
+== Email
+Jakarta Mail is often integrated into EJB applications via `Session` objects from JNDI. Spring Boot offers a simplified integration with `JavaMailSender`, which is configured via properties. The migration affects both injection and configuration.
+=== JNDI session to JavaMailSender
+.Example: BEFORE (EJB)
+[source, java]----
 import javax.annotation.Resource;
 import javax.mail.Session;
 
@@ -17,9 +13,8 @@ public class NotificationService {
 }
 ----
 
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+.Example: AFTER (Spring Boot)
+[source, java]----
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
@@ -34,4 +29,4 @@ public class NotificationService {
 }
 ----
 
-Die Konfiguration erfolgt über `spring.mail.*` in `application.properties`. Sicherheitsrelevante Werte wie Passwörter sollten über Secrets oder Vaults eingebunden werden.
+The configuration is done via `spring.mail.*` in `application.properties`. Security-relevant values ​​such as passwords should be integrated via secrets or vaults.

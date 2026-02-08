@@ -1,14 +1,9 @@
 == JPA
-
-JPA ist in EJB-Anwendungen häufig über `persistence.xml`, `@PersistenceContext` und containerverwaltete Transaktionen eingebunden. In Spring Boot wird JPA meist durch `spring-boot-starter-data-jpa` konfiguriert, wobei `application.properties` die zentrale Konfigurationsquelle ist. Die Migration betrifft nicht nur die Annotationen, sondern auch Datenquellen, Transaktionsgrenzen und das Zusammenspiel von Repositorys und EntityManager.
-
-=== EntityManager-Injektion
-
-EJB nutzt `@PersistenceContext` und erhält einen containerverwalteten `EntityManager`. In Spring kann der `EntityManager` über `@PersistenceContext` weiterhin injiziert werden, allerdings stehen zusätzlich Spring-Data-Repositories zur Verfügung, die den Zugriff vereinfachen.
-
-.Beispiel: VORHER (EJB)
-[source,java]
-----
+JPA is often included in EJB applications through persistence.xml, @PersistenceContext, and container-managed transactions. In Spring Boot, JPA is mostly configured through `spring-boot-starter-data-jpa`, where `application.properties` is the central configuration source. The migration affects not only the annotations, but also data sources, transaction boundaries and the interaction between repositories and EntityManager.
+=== EntityManager injection
+EJB uses `@PersistenceContext` and gets a container managed `EntityManager`. In Spring, the `EntityManager` can still be injected via `@PersistenceContext`, but Spring data repositories are also available to simplify access.
+.Example: BEFORE (EJB)
+[source, java]----
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.ejb.Stateless;
@@ -25,9 +20,8 @@ public class BookingRepository {
 }
 ----
 
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+.Example: AFTER (Spring Boot)
+[source, java]----
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
@@ -44,34 +38,23 @@ public class BookingRepository {
 }
 ----
 
-=== persistence.xml zu Spring-Konfiguration
-
-In EJB-Anwendungen definiert `persistence.xml` den Persistence-Unit-Namen, den Provider, die DataSource und spezifische JPA-Properties. In Spring Boot werden diese Werte in `application.properties` oder `application.yml` überführt, typischerweise als `spring.jpa.*` und `spring.datasource.*`. Dabei müssen Unterschiede im Provider-Verhalten beachtet werden, insbesondere wenn EclipseLink genutzt wurde und Spring Boot standardmäßig Hibernate verwendet.
-
-`persistence.xml` kann Annotationen ergänzen oder überschreiben, etwa bei `@NamedQuery`‑Definitionen oder Provider‑spezifischen Properties. Diese Overrides sind in der Migration zu erfassen und in Spring‑Konfiguration zu überführen, wenn `persistence.xml` entfällt.
-
+=== persistence.xml to Spring configuration
+In EJB applications, `persistence.xml` defines the persistence unit name, provider, data source and specific JPA properties. In Spring Boot, these values ​​are transferred to `application.properties` or `application.yml`, typically as `spring.jpa.*` and `spring.datasource.*`. Differences in provider behavior must be taken into account, especially if EclipseLink was used and Spring Boot uses Hibernate by default.
+`persistence.xml` can add or overwrite annotations, for example in `@NamedQuery` definitions or provider-specific properties. These overrides must be recorded in the migration and transferred to the Spring configuration if `persistence.xml` is omitted.
 === Extended Persistence Context
-
-Die JPA-Spezifikation erlaubt einen `PersistenceContextType.EXTENDED`, der an die Lebensdauer einer Stateful Session Bean gebunden ist und erst bei `@Remove` endet. In Spring gibt es dafür kein direktes Gegenstück. Wenn die Anwendung auf einen extended context angewiesen ist, muss der Zustand explizit in eine fachliche Konversation oder eine eigene EntityManager-Verwaltung überführt werden.
-
-Für den Standardfall gilt: Der transaction‑scoped Persistence Context endet mit Commit oder Rollback. Aufrufe außerhalb einer aktiven Transaktion führen dazu, dass geladene Entitäten am Ende des Methodenaufrufs detacht sind. Diese Semantik ist in Spring identisch, wird aber häufig durch Repository‑Abstraktionen verdeckt. Bei Migrationen mit Lazy‑Loading oder langen Konversationen muss geprüft werden, ob ein Extended‑Context implizit genutzt wurde.
-
-=== Transaktionsgrenzen
-
-EJB verwendet containerverwaltete Transaktionen und bestimmt den Kontext pro Methodenaufruf. In Spring geschieht dies über `@Transactional`. Das Transaktionsverhalten bleibt nur dann identisch, wenn die Propagation und Rollback-Regeln sauber übertragen werden. Außerdem wirkt sich das Proxy-Modell auf interne Methodenaufrufe aus: eine `@Transactional`-Methode, die intern von derselben Klasse aufgerufen wird, startet keine neue Transaktion.
-
-=== Automatisierte Migration
-
-[cols="1,3"]
-|===
+The JPA specification allows a `PersistenceContextType.EXTENDED`, which is tied to the lifetime of a stateful session bean and only ends at `@Remove`. There is no direct counterpart for this in Spring. If the application relies on an extended context, the state must be explicitly transferred to a business conversation or its own EntityManager management.
+The following applies to the standard case: The transaction-scoped persistence context ends with commit or rollback. Calls outside an active transaction result in loaded entities being detached at the end of the method call. These semantics are identical in Spring, but are often obscured by repository abstractions. For migrations with lazy loading or long conversations, it must be checked whether an extended context was used implicitly.
+=== Transaction limits
+EJB uses container-managed transactions and determines context per method call. In Spring this is done via `@Transactional`. The transaction behavior only remains identical if the propagation and rollback rules are transferred cleanly. Additionally, the proxy model affects internal method calls: a `@Transactional` method called internally by the same class will not start a new transaction.
+=== Automated migration
+[cols="1.3"]|===
 | Name | `de.example.rewrite.ejb.MigratePersistenceXmlToProperties`
-| Beschreibung | Extrahiert JPA-Konfiguration aus `persistence.xml` und erzeugt `application.properties`.
-| Konfiguration | keine
+| Description | Extracts JPA configuration from `persistence.xml` and creates `application.properties`.
+| Configuration | no
 |===
 
-[cols="1,3"]
-|===
+[cols="1.3"]|===
 | Name | `de.example.rewrite.ejb.MigratePersistence`
-| Beschreibung | Kombiniert alle Persistenz-Rezepte.
-| Konfiguration | keine
+| Description | Combines all persistence recipes.
+| Configuration | none
 |===

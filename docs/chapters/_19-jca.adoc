@@ -1,67 +1,54 @@
 == JCA (Java Connector Architecture)
-
-JCA-Connectoren sind ein Container-Feature, das Ressourcenadapter, Connection-Management und transaktionale Integration standardisiert. Die Migration umfasst die Bewertung vorhandener Connectoren, ihrer JNDI-Bindungen und der Integrationswege im Zielsystem.
-
-.Spezifikationsreferenzen
-****
+JCA connectors are a container feature that standardizes resource adapters, connection management, and transactional integration. The migration includes evaluating existing connectors, their JNDI bindings and the integration paths in the target system.
+.Specification references****
 * https://jakarta.ee/specifications/connectors/2.1/jakarta-connectors-spec-2.1.html[Jakarta Connectors 2.1 Spec]
 * https://jakarta.ee/specifications/connectors/2.1/jakarta-connectors-spec-2.1.html#a512[Jakarta Connectors 2.1 - §5 Contracts]
 * https://jakarta.ee/specifications/connectors/2.1/jakarta-connectors-spec-2.1.html#a1027[Jakarta Connectors 2.1 - §7 Transaction Management]
-* https://docs.spring.io/spring-framework/reference/integration/jca.html[Spring Framework - JCA CCI Support]
-****
+* https://docs.spring.io/spring-framework/reference/integration/jca.html[Spring Framework - JCA CCI Support]****
 
-=== Typische Einsatzfälle
+=== Typical applications
+If JCA is used in the system, the associated JNDI names, adapter configurations and transaction requirements must be collected before a target technology is determined.
+=== Migration to Spring
+In Spring Boot, integration is implemented via specific starters, adapter libraries or explicit client configurations. Where possible, transactional boundaries should be supported by the target system. If transactional integration is not available, the business logic must be secured with compensation steps or idempotence strategies.
+=== Checkpoints for the project
+Before migration, the existing JCA resources must be collected:
+[cols="1.3"]|===
+| aspect | Test
 
-Falls JCA im System verwendet wird, sind die zugehörigen JNDI-Namen, Adapter-Konfigurationen und Transaktionsanforderungen zu erfassen, bevor eine Zieltechnologie festgelegt wird.
-
-=== Migration in Spring
-
-In Spring Boot wird die Integration über spezifische Starter, Adapterbibliotheken oder explizite Client-Konfigurationen umgesetzt. Wo möglich sollten transaktionale Grenzen durch das Zielsystem unterstützt werden. Falls keine transaktionale Integration verfügbar ist, muss die Fachlogik mit Kompensationsschritten oder Idempotenz-Strategien abgesichert werden.
-
-=== Prüfpunkte für das Projekt
-
-Vor der Migration müssen die vorhandenen JCA-Ressourcen erfasst werden:
-
-[cols="1,3"]
-|===
-| Aspekt | Prüfung
-
-| Adapter-Konfiguration
-| Welche Resource Adapter sind in `standalone.xml` / `domain.xml` definiert?
+| Adapter configuration
+| Which resource adapters are defined in `standalone.xml` / `domain.xml`?
 
 | JNDI-Bindungen
-| Welche `java:/` oder `java:jboss/` Bindungen werden für Adapter verwendet?
+| Which `java:/` or `java:jboss/` bindings are used for adapters?
 
 | Connection Factories
-| Welche `ConnectionFactory`-Typen werden injiziert (`@Resource`)?
+| Which `ConnectionFactory` types are injected (`@Resource`)?
 
 | Transaktionsintegration
-| Nutzen Adapter XA-Transaktionen oder Local Transactions?
+| Do adapters use XA transactions or local transactions?
 
 | Adapter-Typ
-| Outbound (Client zu EIS) oder Inbound (Message-Driven)?
+| Outbound (Client to EIS) or Inbound (Message-Driven)?
 |===
 
-=== Typische Migrationspfade
+=== Typical migration paths
+[cols="1,2,2"]|===
+| JCA Adapter | Spring Alternative | Note
 
-[cols="1,2,2"]
-|===
-| JCA-Adapter | Spring-Alternative | Hinweis
+| JMS Adapter
+| Spring JMS with `JmsTemplate` / `@JmsListener`
+| Preferred migration path for messaging
 
-| JMS-Adapter
-| Spring JMS mit `JmsTemplate` / `@JmsListener`
-| Bevorzugte Migration für Messaging
+| JDBC Adapter
+| Spring `DataSource` with connection pool
+| Standard approach for database access
 
-| JDBC-Adapter
-| Spring `DataSource` mit Connection Pool
-| Standard für Datenbankzugriff
-
-| Mail-Adapter
+| Mail Adapter
 | Spring `JavaMailSender`
-| Siehe Mail-Kapitel
+| See mail chapter
 
-| Proprietäre EIS-Adapter
-| Spring Integration oder direkte Client-Bibliothek
-| Projektspezifische Analyse erforderlich
+| Proprietary EIS adapters
+| Spring Integration or direct client library
+| Project-specific analysis required
 |===
 

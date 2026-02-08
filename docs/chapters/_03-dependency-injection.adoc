@@ -1,45 +1,30 @@
 == Dependency Injection
-
-Dependency Injection ist in EJB eng an den Container gekoppelt: die Instanz wird erzeugt, der Container injiziert Abhängigkeiten in Felder oder Setter und ruft anschließend `@PostConstruct` auf. Konstruktorinjektion ist in EJB nicht vorgesehen. Spring setzt dagegen auf Konstruktorinjektion als Standard und verwendet Proxies für Querschnittsfunktionen. Das beeinflusst, wo Initialisierung und Validierung sinnvoll platziert werden.
-
+Dependency injection in EJB is tightly coupled to the container: the instance is created, the container injects dependencies into fields or setters and then calls `@PostConstruct`. Constructor injection is not provided in EJB. Spring, on the other hand, relies on constructor injection as the default and uses proxies for cross-sectional functions. These influences where initialization and validation are meaningfully placed.
 === @EJB -> Constructor Injection
-
-`@EJB` steht typischerweise für lokale EJB-Referenzen innerhalb derselben Anwendung. In Spring wird dieselbe Beziehung als normale Bean-Injektion abgebildet. Für EJB-`lookup` über JNDI gibt es im Spring-Standardmodell keine direkte Entsprechung; je nach Architektur ist ein expliziter Remote-Adapter notwendig.
-
-.Beispiel: VORHER (EJB)
-[source,java]
-----
+`@EJB` typically represents local EJB references within the same application. In Spring, the same relationship is represented as normal bean injection. EJB `lookup` via JNDI has no direct equivalent in the standard Spring model; Depending on the architecture, an explicit remote adapter is necessary.
+.Example: BEFORE (EJB)
+[source, java]----
 import javax.ejb.Stateless;
 import javax.ejb.EJB;
-
 @Stateless
 public class OrderController {
-
-    @EJB
+@EJB
     private OrderService orderService;
-
-    @EJB(beanName = "primaryCustomerService")
+@EJB(beanName = "primaryCustomerService")
     private CustomerService customerService;
-
-    @EJB(lookup = "java:global/app/PaymentService")
+@EJB(lookup = "java:global/app/PaymentService")
     private PaymentService paymentService;
-}
-----
-
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+}----
+.Example: AFTER (Spring Boot)
+[source, java]----
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Qualifier;
-
 @Component
 public class OrderController {
-
-    private final OrderService orderService;
+private final OrderService orderService;
     private final CustomerService customerService;
     private final PaymentService paymentService;
-
-    public OrderController(
+public OrderController(
             OrderService orderService,
             @Qualifier("primaryCustomerService") CustomerService customerService,
             PaymentService paymentService) {
@@ -47,21 +32,15 @@ public class OrderController {
         this.customerService = customerService;
         this.paymentService = paymentService;
     }
-}
-----
+}----
 
-[NOTE]
-====
-`@EJB(lookup=...)` ist ein JNDI-basierter Verweis. In Spring ist das nur dann ersetzbar, wenn ein äquivalenter Bean im gleichen Kontext existiert. Für echte Remote-Zugriffe ist ein expliziter Adapter (REST, Messaging, gRPC) erforderlich.
-====
+[NOTE]====
+`@EJB(lookup=...)` is a JNDI based reference. In Spring this can only be replaced if an equivalent bean exists in the same context. An explicit adapter (REST, Messaging, gRPC) is required for true remote access.====
 
 === @Inject (CDI) -> Constructor Injection
-
-CDI `@Inject` ist semantisch ähnlich zu Spring DI, aber die Scopes unterscheiden sich in Details. In der Migration ist wichtig, dass Spring standardmäßig keine impliziten CDI-Features wie Qualifier-Metadaten oder Producer übernimmt.
-
-.Beispiel: VORHER (CDI (Jakarta EE))
-[source,java]
-----
+CDI `@Inject` is semantically similar to Spring DI, but the scopes differ in details. When migrating, it is important that Spring does not adopt any implicit CDI features such as qualifier metadata or producers by default.
+.Example: BEFORE (CDI (Jakarta EE))
+[source, java]----
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.enterprise.context.RequestScoped;
@@ -79,38 +58,29 @@ public class CheckoutController {
 }
 ----
 
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+.Example: AFTER (Spring Boot)
+[source, java]----
 import org.springframework.stereotype.Controller;
 import org.springframework.web.context.annotation.RequestScope;
 import org.springframework.beans.factory.annotation.Qualifier;
-
 @Controller
 @RequestScope
 public class CheckoutController {
-
-    private final ShoppingCart cart;
+private final ShoppingCart cart;
     private final PaymentProcessor paymentProcessor;
-
-    public CheckoutController(
+public CheckoutController(
             ShoppingCart cart,
             @Qualifier("expressPayment") PaymentProcessor paymentProcessor) {
         this.cart = cart;
         this.paymentProcessor = paymentProcessor;
     }
-}
-----
+}----
 
 === @Resource -> @Autowired / @Value / @ConfigurationProperties
-
-`@Resource` wird in EJB sowohl für lokale Dienste als auch für JNDI-gebundene Ressourcen verwendet. In Spring muss der Zieltyp unterschieden werden:
-
-==== @Resource für lokale Services
-
-.Beispiel: VORHER (EJB)
-[source,java]
-----
+`@Resource` is used in EJB for both local services and JNDI bound resources. In Spring, the target type needs to be distinguished:
+==== @Resource for local services
+.Example: BEFORE (EJB)
+[source, java]----
 import javax.annotation.Resource;
 import javax.ejb.Stateless;
 
@@ -122,27 +92,20 @@ public class NotificationService {
 }
 ----
 
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+.Example: AFTER (Spring Boot)
+[source, java]----
 import org.springframework.stereotype.Service;
-
 @Service
 public class NotificationService {
-
-    private final EmailService emailService;
-
-    public NotificationService(EmailService emailService) {
+private final EmailService emailService;
+public NotificationService(EmailService emailService) {
         this.emailService = emailService;
     }
-}
-----
+}----
 
-==== @Resource für DataSource
-
-.Beispiel: VORHER (EJB)
-[source,java]
-----
+==== @Resource for DataSource
+.Example: BEFORE (EJB)
+[source, java]----
 import javax.annotation.Resource;
 import javax.sql.DataSource;
 
@@ -154,67 +117,50 @@ public class ReportService {
 }
 ----
 
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+.Example: AFTER (Spring Boot)
+[source, java]----
 import org.springframework.stereotype.Service;
 import javax.sql.DataSource;
-
 @Service
 public class ReportService {
-
-    private final DataSource dataSource;
-
-    public ReportService(DataSource dataSource) {
+private final DataSource dataSource;
+public ReportService(DataSource dataSource) {
         this.dataSource = dataSource;
     }
-}
-----
+}----
 
-==== @Resource für Konfiguration
-
-.Beispiel: JNDI-Konfiguration in EJB
-[source,java]
-----
+==== @Resource for configuration
+.Example: JNDI configuration in EJB
+[source, java]----
 @Resource(name = "java:app/config/TaxRate")
 private BigDecimal taxRate;
 ----
 
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+.Example: AFTER (Spring Boot)
+[source, java]----
 import org.springframework.beans.factory.annotation.Value;
-
 @Value("${tax.rate}")
-private BigDecimal taxRate;
-----
+private BigDecimal taxRate;----
 
-[NOTE]
-====
-Konfiguration in Spring ist explizit (Properties/YAML oder `@ConfigurationProperties`). JNDI-Konfiguration muss als Properties abgebildet oder in eine separate Konfigurationsschicht überführt werden.
+[NOTE]====
+Configuration in Spring is explicit (Properties/YAML or `@ConfigurationProperties`). JNDI configuration must be mapped as properties or transferred to a separate configuration layer.
 ====
 
-=== Automatisierte Migration
-
-[cols="1,3"]
-|===
+=== Automated migration
+[cols="1.3"]|===
 | Name | `de.example.rewrite.ejb.MigrateEjbToAutowired`
-| Beschreibung | Transformiert `@EJB` zu `@Autowired`.
-| Konfiguration | keine
-|===
+| Description | Transforms `@EJB` to `@Autowired`.
+| Configuration | no|===
 
-[cols="1,3"]
-|===
+[cols="1.3"]|===
 | Name | `de.example.rewrite.ejb.MigrateInjectToAutowired`
-| Beschreibung | Transformiert `@Inject` zu `@Autowired`.
-| Konfiguration | keine
+| Description | Transforms `@Inject` to `@Autowired`.
+| Configuration | none
 |===
 
-[cols="1,3"]
-|===
+[cols="1.3"]|===
 | Name | `de.example.rewrite.ejb.MigrateDependencyInjection`
-| Beschreibung | Kombiniert `MigrateEjbToAutowired` und `MigrateInjectToAutowired`.
-| Konfiguration | keine
-|===
+| Description | Combines `MigrateEjbToAutowired` and `MigrateInjectToAutowired`.
+| Configuration | no|===
 
 ---

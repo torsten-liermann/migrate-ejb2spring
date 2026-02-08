@@ -1,16 +1,10 @@
 == Exceptions
-
-EJB unterscheidet zwischen Application Exceptions und System Exceptions. Application Exceptions werden fachlich behandelt und führen standardmäßig nicht zu Rollback, während System Exceptions den Container in einen Fehlerzustand versetzen und einen Rollback auslösen. Spring kennt diese Unterscheidung nicht in gleicher Form. Stattdessen steuern `@Transactional`-Regeln, ob bei Checked- oder Runtime-Exceptions ein Rollback erfolgt.
-
+EJB differentiates between application exceptions and system exceptions. Application exceptions are handled technically and do not result in rollback by default, while system exceptions put the container in an error state and trigger a rollback. Spring does not recognize this distinction in the same way. Instead, `@Transactional` rules control whether checked or runtime exceptions are rolled back.
 === Application Exceptions in EJB
-
-`@ApplicationException` ermöglicht es, Ausnahmen explizit als fachlich zu markieren und das Rollback-Verhalten zu steuern. Das ist in vielen EJB-Anwendungen eine wichtige Grundlage für fachliche Fehlerbehandlung.
-
-Runtime‑Exceptions, die nicht als Application Exceptions markiert sind, werden in EJB als System‑Exceptions behandelt. Sie führen zu Rollback und können die betroffene Bean‑Instanz ungültig machen. In Spring muss dieses Verhalten im Fehler‑ und Retry‑Design abgebildet werden.
-
-.Beispiel: VORHER (EJB)
-[source,java]
-----
+`@ApplicationException` allows exceptions to be explicitly marked as technical and to control rollback behavior. This is an important basis for technical error handling in many EJB applications.
+Runtime exceptions that are not marked as application exceptions are treated as system exceptions in EJB. They result in rollback and may invalidate the affected bean instance. In Spring, this behavior must be reflected in the error and retry design.
+.Example: BEFORE (EJB)
+[source, java]----
 import javax.ejb.ApplicationException;
 
 @ApplicationException(rollback = false)
@@ -21,13 +15,10 @@ public class PricingRuleViolation extends Exception {
 }
 ----
 
-=== Spring-Äquivalent
-
-In Spring wird das Rollback-Verhalten in `@Transactional` definiert. Checked Exceptions führen standardmäßig nicht zu Rollback. Wenn fachliche Exceptions ebenfalls ein Rollback auslösen sollen, muss dies explizit angegeben werden.
-
-.Beispiel: NACHHER (Spring Boot)
-[source,java]
-----
+=== Spring equivalent
+In Spring, rollback behavior is defined in `@Transactional`. By default, checked exceptions do not result in rollback. If business exceptions should also trigger a rollback, this must be specified explicitly.
+.Example: AFTER (Spring Boot)
+[source, java]----
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional(rollbackFor = PricingRuleViolation.class)
@@ -36,4 +27,4 @@ public Money calculateTariff(Shipment shipment) throws PricingRuleViolation {
 }
 ----
 
-Migrationen müssen fachliche Exceptions identifizieren und bewusst entscheiden, welches Rollback-Verhalten erforderlich ist. EJB-`@ApplicationException`-Annotationen sollten in der Regel in Spring-Transaktionsregeln abgebildet werden.
+Migrations must identify technical exceptions and consciously decide which rollback behavior is required. EJB `@ApplicationException` annotations should typically be mapped into Spring transaction rules.

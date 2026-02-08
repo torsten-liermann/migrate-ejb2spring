@@ -1,17 +1,9 @@
-== Deployment-Deskriptoren
-
-EJB-Anwendungen können Annotationen durch `ejb-jar.xml`, `web.xml`, `persistence.xml` und weitere Deskriptoren ergänzen oder überschreiben. In Spring Boot werden diese Konfigurationen in der Regel durch Java-Konfiguration und `application.properties` ersetzt. Die Migration muss daher sowohl Annotationen als auch Deskriptor-Overrides berücksichtigen.
-
+== Deployment descriptors
+EJB applications can supplement or override annotations with `ejb-jar.xml`, `web.xml`, `persistence.xml`, and other descriptors. In Spring Boot, these configurations are usually replaced with Java configuration and `application.properties`. The migration must therefore take into account both annotations and descriptor overrides.
 === ejb-jar.xml
-
-`ejb-jar.xml` kann Transaktionsattribute, Interceptors, Security-Rollen oder JNDI-Namen deklarativ definieren. Diese Informationen müssen beim Umstieg in Spring explizit in Annotationen oder Konfigurationsklassen übernommen werden. Das Mapping folgt den Projektentscheidungen und den tatsächlichen Deskriptor‑Overrides.
-
-Deployment‑Deskriptoren dürfen Annotationen ergänzen oder überschreiben. Die Migration muss daher prüfen, ob Transaktions‑, Security‑ oder Interceptor‑Regeln in `ejb-jar.xml` von den Annotationen abweichen. Ohne diese Prüfung entstehen stille Verhaltensänderungen.
-
+`ejb-jar.xml` can declaratively define transaction attributes, interceptors, security roles or JNDI names. When switching to Spring, this information must be explicitly included in annotations or configuration classes. The mapping follows the project decisions and the actual descriptor overrides.
+Deployment descriptors may supplement or overwrite annotations. The migration must therefore check whether transaction, security or interceptor rules in `ejb-jar.xml` differ from the annotations. Without this examination, silent behavioral changes occur.
 === web.xml
-
-`web.xml` steuert Filter, Listener, Security Constraints und Servlet-Mappings. In Spring Boot werden entsprechende Einstellungen über Java-Konfiguration, Security-Konfiguration und `application.properties` abgebildet. Einige Einstellungen, etwa `session-timeout`, lassen sich direkt übernehmen, andere erfordern eine Neubewertung der Web-Architektur.
-
+`web.xml` controls filters, listeners, security constraints and servlet mappings. In Spring Boot, corresponding settings are mapped via Java configuration, security configuration and `application.properties`. Some settings, such as `session-timeout`, can be applied directly, others require a reevaluation of the web architecture.
 === persistence.xml
-
-`persistence.xml` enthält die JPA-Konfiguration und definiert den Persistence-Provider. In Spring Boot wird diese Konfiguration typischerweise in `application.properties` und optionalen `@Configuration`-Klassen abgebildet. Unterschiede zwischen EclipseLink und Hibernate müssen dabei berücksichtigt werden.
+`persistence.xml` contains the JPA configuration and defines the persistence provider. In Spring Boot, this configuration is typically represented in `application.properties` and optional `@Configuration` classes. Differences between EclipseLink and Hibernate must be taken into account.
